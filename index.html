@@ -145,7 +145,7 @@ const SYMBOLS = { USD:"$", EUR:"€" };
 const fmtTok = k => k >= 1000 ? `${(k/1000).toFixed(1)}M` : `${k}k`;
 const fmtMoney = (n, cur) => {
   const v = n * RATES[cur];
-  if (v === 0) return `${SYMBOLS[cur]}0.00`;
+  if (Math.abs(v) < Number.EPSILON) return `${SYMBOLS[cur]}0.00`;
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
@@ -579,7 +579,7 @@ function App() {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
               <div>
-                <Label>Interval (0 disables reviews)</Label>
+                <Label>Interval</Label>
                 <input aria-label="Review interval" type="number" value={reviewEvery} min={0} max={100} step={1}
                   onChange={e=>setReviewEvery(clampReviewInterval(e.target.value, reviewEvery))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
