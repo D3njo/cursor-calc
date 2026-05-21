@@ -109,17 +109,17 @@ const C = {
   mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
 };
 
-const STORAGE_KEY = "cursor-calc:v2";
+const STORAGE_KEY = "cursor-calc:v3";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
 const PRICING_UPDATED = "2026-05-21";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:28, cacheK:8,  outputK:4  },
-  { id:2, name:"Code",          inputK:67, cacheK:18, outputK:8  },
-  { id:3, name:"Review / Plan", inputK:45, cacheK:14, outputK:4  },
-  { id:4, name:"Code",          inputK:80, cacheK:22, outputK:8  },
+  { id:1, name:"Review / Plan", inputK:28, cacheK:0, outputK:4  },
+  { id:2, name:"Code",          inputK:67, cacheK:0, outputK:8  },
+  { id:3, name:"Review / Plan", inputK:45, cacheK:0, outputK:4  },
+  { id:4, name:"Code",          inputK:80, cacheK:0, outputK:8  },
 ];
 const DEFAULT_MODELS = [
   { id:"c25s",  name:"Composer 2.5",      inputP:0.50, cacheP:0.20, outputP:2.50,  color:"#00d4aa" },
@@ -148,7 +148,7 @@ const fmtMoney = (n, cur) => {
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
-const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:9,cModelId:"c25f",rModelId:"gpt55",revInK:80,revCacheK:20,revOutK:12,reviewEvery:10,currency:"USD"});
+const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:9,cModelId:"c25f",rModelId:"gpt55",revInK:80,revCacheK:0,revOutK:12,reviewEvery:10,currency:"USD"});
 const encodeConfig = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 const decodeConfig = raw => JSON.parse(decodeURIComponent(escape(atob(raw))));
 function sanitizeConfig(raw) {
@@ -463,9 +463,10 @@ function App() {
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                   <span style={{fontFamily:C.mono,fontSize:11,color:C.muted,
                     background:C.s2,borderRadius:4,padding:"2px 8px",flexShrink:0}}>{i+1}</span>
-                  <input aria-label={`Name für Step ${i+1}`} value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
-                    style={{flex:1,background:"transparent",border:"none",color:C.text,
-                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
+                  <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,flexShrink:0}}>Name</span>
+                  <input aria-label={`Name für Step ${i+1}`} title="Step umbenennen" value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
+                    style={{flex:1,background:C.s2,border:`1px solid ${C.border2}`,borderRadius:5,color:C.text,
+                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0,padding:"5px 7px"}}/>
                   <button aria-label={`${step.name} nach oben verschieben`} disabled={i===0} onClick={()=>moveStep(i,-1)}
                     style={{background:C.s2,border:`1px solid ${C.border2}`,borderRadius:6,
                       color:C.muted,fontSize:13,padding:"4px 7px",flexShrink:0}}>↑</button>
@@ -539,8 +540,8 @@ function App() {
               </div>
               <div>
                 <Label>Cache-Read (k)</Label>
-                <input aria-label="Review Cache-Read Tokens" type="number" value={revCacheK} min={1} max={revInK} step={1}
-                  onChange={e=>setRevCacheK(Math.min(revInK,Math.max(1,parseInt(e.target.value)||1)))}
+                <input aria-label="Review Cache-Read Tokens" type="number" value={revCacheK} min={0} max={revInK} step={1}
+                  onChange={e=>setRevCacheK(Math.min(revInK,Math.max(0,parseInt(e.target.value)||0)))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.muted,fontFamily:C.mono,fontSize:15,
                     padding:"9px 10px",textAlign:"right"}}/>
