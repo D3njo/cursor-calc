@@ -155,7 +155,10 @@ const defaultPlanBudgets = () => Object.fromEntries(PLANS.map(p=>[p.id,p.default
 const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],sessions:5,cModelId:PLACEHOLDER_MODEL_ID,rModelId:PLACEHOLDER_MODEL_ID,revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD",planBudgets:defaultPlanBudgets()});
 const normalizeModelName = name => String(name||"Model").replace(/\s+/g," ").trim();
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-const modelIdFromName = name => `cursor-${modelKey(name).replace(/\s+/g,"-").slice(0,48) || uid("m")}`;
+const MAX_MODEL_ID_SLUG_LENGTH = 48;
+const MIN_VALID_MODEL_KEY_LENGTH = 2;
+const INVALID_MODEL_KEY_PARTS = ["pricing","token"];
+const modelIdFromName = name => `cursor-${modelKey(name).replace(/\s+/g,"-").slice(0,MAX_MODEL_ID_SLUG_LENGTH) || uid("m")}`;
 const isCustomModel = model => model?.source === "custom";
 const isCursorModel = model => model?.source === "cursor";
 const isPlaceholderModel = model => model?.source === "placeholder";
@@ -236,7 +239,7 @@ function parseCursorPricing(html) {
   const addParsedModel = (model, index=parsedByKey.size) => {
     const name = normalizeModelName(model.name);
     const key = modelKey(name);
-    if(!key || key.length < 2 || INVALID_MODEL_KEYS.has(key) || key.includes("pricing") || key.includes("token")) return;
+    if(!key || key.length < MIN_VALID_MODEL_KEY_LENGTH || INVALID_MODEL_KEYS.has(key) || INVALID_MODEL_KEY_PARTS.some(part=>key.includes(part))) return;
     const inputP = Number(model.inputP)||0;
     const outputP = Number(model.outputP)||0;
     if(!inputP || !outputP) return;
@@ -476,12 +479,13 @@ function App() {
         if(ignore) return;
         const cursorModels = parseCursorPricing(html);
         if(!cursorModels.length) {
-          setPricingStatus("Cursor pricing page loaded, but no model table was found.");
+          setPricingStatus("Cursor pricing page loaded, but no model table was found. Using stored prices.");
           return;
         }
         setModels(ms=>{
           const hadPlaceholder = ms.some(isPlaceholderModel);
-          const hadSmallCursorFallback = ms.filter(isCursorModel).length > 0 && ms.filter(isCursorModel).length < 10;
+          const existingCursorModels = ms.filter(isCursorModel);
+          const hadSmallCursorFallback = existingCursorModels.length > 0 && existingCursorModels.length < 10;
           const next = mergeCursorModels(ms, activeModelIds, cursorModels);
           const firstAvailable = next.find(m=>!isPlaceholderModel(m));
           setActiveModelIds(ids=>{
