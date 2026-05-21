@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Cursor Calc"/>
 <meta name="theme-color" content="#07090e"/>
-<meta name="description" content="Cursor Token & Kosten Rechner"/>
+<meta name="description" content="Cursor Token & Cost Calculator"/>
 <title>Cursor Calc</title>
 <link rel="manifest" href="./manifest.json"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -18,7 +18,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 
 <script>
-// Apple Touch Icon (inline SVG als data URI)
+// Apple touch icon (inline SVG as data URI)
 const appleIcon = document.createElement("link");
 appleIcon.rel = "apple-touch-icon";
 appleIcon.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2307090e'/%3E%3Cpolygon points='256,60 420,160 420,352 256,452 92,352 92,160' fill='none' stroke='%2300d4aa' stroke-width='28'/%3E%3Ctext x='256' y='300' text-anchor='middle' font-size='180' font-weight='900' fill='%2300d4aa' font-family='monospace'%3E%E2%AC%A1%3C/text%3E%3C/svg%3E";
@@ -66,12 +66,12 @@ button:active:not(:disabled){opacity:0.6;transform:scale(0.97);}
 <div id="install-banner">
   <div style="font-size:22px">⬡</div>
   <div style="flex:1">
-    <div style="font-weight:800;font-size:13px;color:#c8d6ef">Cursor Calc installieren</div>
-    <div style="font-size:11px;color:#5a6a85;font-family:'IBM Plex Mono',monospace">Am Homescreen hinzufügen</div>
+    <div style="font-weight:800;font-size:13px;color:#c8d6ef">Install Cursor Calc</div>
+    <div style="font-size:11px;color:#5a6a85;font-family:'IBM Plex Mono',monospace">Add to Home Screen</div>
   </div>
   <button id="install-btn" style="background:#00d4aa22;border:1px solid #00d4aa;border-radius:8px;
-    color:#00d4aa;font-weight:700;font-size:13px;padding:8px 16px;">Installieren</button>
-  <button id="dismiss-btn" aria-label="Installationshinweis schließen" style="background:none;border:none;color:#5a6a85;font-size:20px;padding:4px 8px;">✕</button>
+    color:#00d4aa;font-weight:700;font-size:13px;padding:8px 16px;">Install</button>
+  <button id="dismiss-btn" aria-label="Dismiss install prompt" style="background:none;border:none;color:#5a6a85;font-size:20px;padding:4px 8px;">✕</button>
 </div>
 
 <script>
@@ -125,17 +125,17 @@ const DEFAULT_MODELS = [
   { id:"c25s",  name:"Composer 2.5",      inputP:0.50, cacheP:0.20, outputP:2.50,  color:"#00d4aa" },
   { id:"c25f",  name:"Composer 2.5 Fast", inputP:3.00, cacheP:0.50, outputP:15.00, color:"#5ba8ff" },
   { id:"gpt55", name:"GPT-5.5",           inputP:5.00, cacheP:0.50, outputP:30.00, color:"#ffb347" },
-  { id:"claude47", name:"Claude 4.7 Sonnet", inputP:3.00, cacheP:0.30, outputP:15.00, color:"#c084fc" },
-  { id:"opus47", name:"Claude 4.7 Opus", inputP:15.00, cacheP:1.50, outputP:75.00, color:"#f472b6" },
+  { id:"claude46", name:"Claude Sonnet 4.6", inputP:3.00, cacheP:0.30, outputP:15.00, color:"#c084fc" },
+  { id:"opus46", name:"Claude Opus 4.6", inputP:15.00, cacheP:1.50, outputP:75.00, color:"#f472b6" },
 ];
 const PLANS = [
-  { name:"Hobby", price:0, allowance:"Kein Budgetlimit" },
-  { name:"Pro",   price:20  },
-  { name:"Pro+",  price:60  },
-  { name:"Ultra", price:200 },
+  { id:"hobby", name:"Hobby", defaultBudget:0 },
+  { id:"pro",   name:"Pro",   defaultBudget:20 },
+  { id:"proPlus", name:"Pro+", defaultBudget:60 },
+  { id:"ultra", name:"Ultra", defaultBudget:200 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyse",inputK:20,cacheK:5,outputK:3,modelId:"c25s"},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:"c25s"}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:20,cacheK:5,outputK:3,modelId:"c25s"},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:"c25s"}] },
   { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5,modelId:"c25s"},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10,modelId:"c25s"},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5,modelId:"c25s"}] },
   { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8,modelId:"c25s"},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9,modelId:"c25s"},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16,modelId:"c25s"},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7,modelId:"c25s"}] },
 ];
@@ -148,14 +148,16 @@ const fmtMoney = (n, cur) => {
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
-const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:5,cModelId:"c25s",rModelId:"c25s",revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD"});
+const defaultPlanBudgets = () => Object.fromEntries(PLANS.map(p=>[p.id,p.defaultBudget]));
+const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:5,cModelId:"c25s",rModelId:"c25s",revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD",planBudgets:defaultPlanBudgets()});
+const normalizeModelName = name => String(name||"Model").replace(/Claude\s+4[.]7\s+Sonnet/g,"Claude Sonnet 4.6").replace(/Claude\s+4[.]7\s+Opus/g,"Claude Opus 4.6");
 const encodeConfig = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 const decodeConfig = raw => JSON.parse(decodeURIComponent(escape(atob(raw))));
 function sanitizeConfig(raw) {
   const d = defaultConfig();
   if (!raw || typeof raw !== "object") return d;
   const models = Array.isArray(raw.models) && raw.models.length ? raw.models.map(m=>({
-    id:String(m.id||uid("m")), name:String(m.name||"Modell"),
+    id:String(m.id||uid("m")), name:normalizeModelName(m.name),
     inputP:Number(m.inputP)||0, cacheP:Number(m.cacheP)||0, outputP:Number(m.outputP)||0,
     color:String(m.color||"#00d4aa")
   })) : d.models;
@@ -168,6 +170,10 @@ function sanitizeConfig(raw) {
       modelId:models.some(m=>m.id===s.modelId)?s.modelId:cModelId};
   }) : d.steps;
   const revInK = Math.max(1,parseInt(raw.revInK)||d.revInK);
+  const planBudgets = Object.fromEntries(PLANS.map(p=>[
+    p.id,
+    Math.max(0,Number(raw.planBudgets?.[p.id] ?? p.defaultBudget)||0)
+  ]));
   return {
     steps, models,
     sessions:Math.min(50,Math.max(1,parseInt(raw.sessions)||d.sessions)),
@@ -177,7 +183,8 @@ function sanitizeConfig(raw) {
     revCacheK:Math.min(revInK,Math.max(0,parseInt(raw.revCacheK)||d.revCacheK)),
     revOutK:Math.max(1,parseInt(raw.revOutK)||d.revOutK),
     reviewEvery:Math.min(100,Math.max(1,parseInt(raw.reviewEvery)||d.reviewEvery)),
-    currency:RATES[raw.currency]?raw.currency:d.currency
+    currency:RATES[raw.currency]?raw.currency:d.currency,
+    planBudgets
   };
 }
 function readStoredConfig(key) {
@@ -231,7 +238,7 @@ function TokSlider({label, value, onChange, color, max, min=1}) {
   );
 }
 
-function ModelSelect({models, value, onChange, label="Modell"}) {
+function ModelSelect({models, value, onChange, label="Model"}) {
   return (
     <div style={{position:"relative"}}>
       <select value={value} aria-label={label} onChange={e=>onChange(e.target.value)}
@@ -254,6 +261,20 @@ function StatCard({label, value, sub, color, big}) {
   );
 }
 
+function ActionButton({children, onClick, disabled, tone="default"}) {
+  const isPrimary = tone === "primary";
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{background:isPrimary?`linear-gradient(135deg,${C.teal}26,${C.blue}18)`:C.s3,
+        border:`1px solid ${isPrimary?C.teal:C.border2}`,borderRadius:9,color:isPrimary?C.teal:C.text,
+        minHeight:54,fontWeight:800,fontSize:12,padding:"11px 12px",textAlign:"left",
+        display:"flex",flexDirection:"column",justifyContent:"center",gap:3,
+        boxShadow:isPrimary?`0 0 0 1px ${C.teal}11 inset`:`0 0 0 1px rgba(255,255,255,0.02) inset`}}>
+      {children}
+    </button>
+  );
+}
+
 function App() {
   const initial = loadConfig();
   const [steps,    setSteps]    = useState(initial.steps);
@@ -266,6 +287,7 @@ function App() {
   const [revOutK,  setRevOutK]  = useState(initial.revOutK);
   const [reviewEvery,setReviewEvery]=useState(initial.reviewEvery);
   const [currency, setCurrency] = useState(initial.currency);
+  const [planBudgets, setPlanBudgets] = useState(initial.planBudgets);
   const [addOpen,  setAddOpen]  = useState(false);
   const [draft,    setDraft]    = useState({name:"",inputP:1.00,cacheP:0.10,outputP:5.00,color:"#c084fc"});
   const [tab,      setTab]      = useState("steps");
@@ -285,7 +307,7 @@ function App() {
   const modelForStep = step => models.find(m=>m.id===(step.modelId||cModelId)) || cModel;
   const selectedStepModels = steps.map(modelForStep);
   const uniqueStepModelNames = [...new Set(selectedStepModels.map(m=>m.name))];
-  const sessionModelLabel = uniqueStepModelNames.length===1 ? uniqueStepModelNames[0] : "gemischte Modelle";
+  const sessionModelLabel = uniqueStepModelNames.length===1 ? uniqueStepModelNames[0] : "mixed models";
   const reviewCount = Math.max(1, Math.ceil(sessions / reviewEvery));
   const sesCost = steps.reduce((sum,step)=>sum+calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK),0);
   const totCost = sessions * sesCost;
@@ -294,11 +316,11 @@ function App() {
   const grand   = totCost + revCost;
   const pct     = n => grand ? Math.min(n/grand*100,100).toFixed(0)+"%" : "0%";
   const money   = n => fmtMoney(n, currency);
-  const cfg = {steps,models,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency};
+  const cfg = {steps,models,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency,planBudgets};
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  }, [steps,models,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency]);
+  }, [steps,models,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency,planBudgets]);
 
   const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>{
     if(s.id!==id) return s;
@@ -306,13 +328,13 @@ function App() {
     const value = f==="cacheK" ? Math.min(v,s.inputK) : v;
     return {...s,[f]:value};
   }));
-  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"Neuer Step",inputK:30,cacheK:5,outputK:5,modelId:cModelId}]);
+  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"New Step",inputK:30,cacheK:5,outputK:5,modelId:cModelId}]);
   const delStep  = id => { if(steps.length>1) setSteps(ss=>ss.filter(s=>s.id!==id)); };
   const dupStep  = step => setSteps(ss=>{
     const next = [];
     ss.forEach(s => {
       next.push(s);
-      if(s.id===step.id) next.push({...step,id:uid("s"),name:`${step.name} Kopie`});
+      if(s.id===step.id) next.push({...step,id:uid("s"),name:`${step.name} copy`});
     });
     return next;
   });
@@ -323,6 +345,7 @@ function App() {
     [next[currentIndex],next[targetIndex]]=[next[targetIndex],next[currentIndex]];
     return next;
   });
+  const updPlanBudget = (id,value) => setPlanBudgets(bs=>({...bs,[id]:Math.max(0,Number(value)||0)}));
   const applyPreset = preset => {
     setPreviousSteps(steps.map(s=>({...s})));
     setSteps(preset.steps());
@@ -351,25 +374,26 @@ function App() {
   const applyConfig = d => {
     setSteps(d.steps); setModels(d.models); setSessions(d.sessions); setCModelId(d.cModelId); setRModelId(d.rModelId);
     setRevInK(d.revInK); setRevCacheK(d.revCacheK); setRevOutK(d.revOutK); setReviewEvery(d.reviewEvery); setCurrency(d.currency);
+    setPlanBudgets(d.planBudgets);
     setPreviousSteps(null);
   };
   const resetAll = () => {
-    if(!confirm("Alle Einstellungen und den gespeicherten Standard zurücksetzen?")) return;
+    if(!confirm("Reset all settings and the saved default?")) return;
     localStorage.removeItem(USER_DEFAULT_STORAGE_KEY);
     applyConfig(defaultConfig());
     setSaveNotice("");
   };
   const saveAsDefault = () => {
     localStorage.setItem(USER_DEFAULT_STORAGE_KEY, JSON.stringify(cfg));
-    setSaveNotice("Aktuelle Werte als Standard für neue Sessions gespeichert.");
+    setSaveNotice("Current values saved as the default for new sessions.");
   };
   const loadSavedDefault = () => {
     try {
       const d = readStoredConfig(USER_DEFAULT_STORAGE_KEY);
-      if(!d) { setSaveNotice("Noch kein eigener Standard gespeichert."); return; }
+      if(!d) { setSaveNotice("No custom default has been saved yet."); return; }
       applyConfig(d);
-      setSaveNotice("Gespeicherter Standard geladen.");
-    } catch(e) { setSaveNotice("Gespeicherter Standard konnte nicht geladen werden."); }
+      setSaveNotice("Saved default loaded.");
+    } catch(e) { setSaveNotice("Saved default could not be loaded."); }
   };
   const exportConfig = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(cfg,null,2)], {type:"application/json"}));
@@ -381,25 +405,25 @@ function App() {
       try {
         const d=sanitizeConfig(JSON.parse(t));
         applyConfig(d);
-      } catch(err) { alert("Import fehlgeschlagen: Ungültige JSON-Datei"); }
+      } catch(err) { alert("Import failed: invalid JSON file"); }
       e.target.value="";
     });
   };
   const shareConfig = async () => {
     const url = `${location.origin}${location.pathname}?config=${encodeConfig(cfg)}`;
     if(url.length>6000) {
-      setShareUrl("Konfiguration ist zu groß für einen zuverlässigen Share-Link. Bitte Export JSON verwenden.");
+      setShareUrl("Configuration is too large for a reliable share link. Please use JSON export.");
       return;
     }
-    try { await navigator.clipboard.writeText(url); alert("Share-Link kopiert"); }
+    try { await navigator.clipboard.writeText(url); alert("Share link copied"); }
     catch(e) { setShareUrl(url); }
   };
 
   const tabs = [
     {id:"steps",   icon:"⬡", label:"Steps"},
     {id:"config",  icon:"⚙", label:"Config"},
-    {id:"models",  icon:"◈", label:"Modelle"},
-    {id:"results", icon:"◎", label:"Ergebnis"},
+    {id:"models",  icon:"◈", label:"Models"},
+    {id:"results", icon:"◎", label:"Results"},
   ];
 
   return (
@@ -428,7 +452,7 @@ function App() {
       <div style={{display:"flex",background:C.s1,borderBottom:`1px solid ${C.border}`,
         position:"sticky",top:56,zIndex:9,flexShrink:0}}>
         {tabs.map(t=>(
-          <button key={t.id} aria-label={`${t.label} öffnen`} onClick={()=>setTab(t.id)} style={{
+          <button key={t.id} aria-label={`Open ${t.label}`} onClick={()=>setTab(t.id)} style={{
             flex:1,padding:"11px 0",background:"transparent",border:"none",
             borderBottom:tab===t.id?`2px solid ${C.teal}`:`2px solid transparent`,
             color:tab===t.id?C.teal:C.muted,fontWeight:700,fontSize:11,
@@ -443,25 +467,28 @@ function App() {
       <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
         <div style={{background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,padding:10,marginBottom:12,
           fontFamily:C.mono,fontSize:11,color:C.muted}}>
-          Preise zuletzt aktualisiert: {PRICING_UPDATED}. Bitte gegen aktuelle Cursor-/Modellpreise prüfen.
+          Prices last updated: {PRICING_UPDATED}. Please verify against current Cursor/model prices.
         </div>
 
         {/* STEPS */}
         {tab==="steps" && (
           <Panel title="Workflow Steps"
             badge={`${fmtTok(sesInK)} in · ${fmtTok(sesCacheK)} cache · ${fmtTok(sesOutK)} out · ${money(sesCost)}/Session`}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9,marginBottom:12}}>
               {PRESETS.map(p=>(
-                <button key={p.name} onClick={()=>applyPreset(p)}
-                  style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,
-                    fontWeight:700,fontSize:12,padding:"10px"}}>Preset: {p.name}</button>
+                <ActionButton key={p.name} onClick={()=>applyPreset(p)}>
+                  <span style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>Preset</span>
+                  <span>{p.name}</span>
+                </ActionButton>
               ))}
-              <button onClick={restorePreviousSteps} disabled={!previousSteps}
-                style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,
-                  fontWeight:700,fontSize:12,padding:"10px"}}>Reset: vorherige Steps</button>
-              <button onClick={saveAsDefault}
-                style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,
-                  fontWeight:700,fontSize:12,padding:"10px"}}>Aktuelle Werte speichern</button>
+              <ActionButton onClick={restorePreviousSteps} disabled={!previousSteps}>
+                <span style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>Undo</span>
+                <span>Restore previous steps</span>
+              </ActionButton>
+              <ActionButton onClick={saveAsDefault} tone="primary">
+                <span style={{fontFamily:C.mono,fontSize:10,color:C.teal}}>Default</span>
+                <span>Save current values</span>
+              </ActionButton>
             </div>
             {saveNotice && <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:12}}>{saveNotice}</div>}
             {steps.map((step,i)=>(
@@ -472,47 +499,47 @@ function App() {
                     background:C.s2,borderRadius:4,padding:"2px 8px",flexShrink:0}}>{i+1}</span>
                   <label style={{flex:1,display:"flex",alignItems:"center",gap:8,minWidth:0}}>
                     <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,flexShrink:0}}>Name</span>
-                    <input aria-label={`Name für Step ${i+1}`} title="Step umbenennen" value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
+                    <input aria-label={`Name for step ${i+1}`} title="Rename step" value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
                       style={{flex:1,background:C.s2,border:`1px solid ${C.border2}`,borderRadius:5,color:C.text,
                         fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0,padding:"5px 7px"}}/>
                   </label>
-                  <button aria-label={`${step.name} nach oben verschieben`} disabled={i===0} onClick={()=>moveStep(i,-1)}
+                  <button aria-label={`Move ${step.name} up`} disabled={i===0} onClick={()=>moveStep(i,-1)}
                     style={{background:C.s2,border:`1px solid ${C.border2}`,borderRadius:6,
                       color:C.muted,fontSize:13,padding:"4px 7px",flexShrink:0}}>↑</button>
-                  <button aria-label={`${step.name} nach unten verschieben`} disabled={i===steps.length-1} onClick={()=>moveStep(i,1)}
+                  <button aria-label={`Move ${step.name} down`} disabled={i===steps.length-1} onClick={()=>moveStep(i,1)}
                     style={{background:C.s2,border:`1px solid ${C.border2}`,borderRadius:6,
                       color:C.muted,fontSize:13,padding:"4px 7px",flexShrink:0}}>↓</button>
-                  <button aria-label={`${step.name} duplizieren`} onClick={()=>dupStep(step)}
+                  <button aria-label={`Duplicate ${step.name}`} onClick={()=>dupStep(step)}
                     style={{background:`${C.blue}22`,border:`1px solid ${C.blue}44`,borderRadius:6,
                       color:C.blue,fontSize:13,padding:"4px 8px",flexShrink:0}}>⧉</button>
-                  <button aria-label={`${step.name} löschen`} disabled={steps.length<=1} onClick={()=>delStep(step.id)}
+                  <button aria-label={`Delete ${step.name}`} disabled={steps.length<=1} onClick={()=>delStep(step.id)}
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
                 <div style={{marginBottom:10}}>
-                  <Label>Modell für diesen Step</Label>
-                  <ModelSelect label={`Modell für Step ${i+1}`} models={models} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
+                  <Label>Model for this step</Label>
+                  <ModelSelect label={`Model for step ${i+1}`} models={models} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
                 </div>
-                <TokSlider label="Input-Tokens" value={step.inputK} color={C.teal} max={500}
+                <TokSlider label="Input tokens" value={step.inputK} color={C.teal} max={500}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
                 <TokSlider label="Cache-Read Tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
                   onChange={v=>updStep(step.id,"cacheK",v)}/>
-                <TokSlider label="Output-Tokens" value={step.outputK} color={C.amber} max={100}
+                <TokSlider label="Output tokens" value={step.outputK} color={C.amber} max={100}
                   onChange={v=>updStep(step.id,"outputK",v)}/>
                 <div style={{fontFamily:C.mono,fontSize:11,color:C.blue,marginTop:2}}>
-                  ⟹ {money(calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK))} mit {modelForStep(step).name}
+                  ⟹ {money(calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK))} with {modelForStep(step).name}
                 </div>
               </div>
             ))}
             <button onClick={addStep} style={{width:"100%",background:"transparent",
               border:`1px dashed ${C.border2}`,borderRadius:8,color:C.muted,
-              fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Step hinzufügen</button>
+              fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Add step</button>
           </Panel>
         )}
 
         {/* CONFIG */}
         {tab==="config" && (<>
-          <Panel title="Session-Konfiguration">
+          <Panel title="Session Configuration">
             <div style={{marginBottom:18}}>
               <Label>Composer Sessions (N)</Label>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -523,29 +550,29 @@ function App() {
                   color:C.teal,minWidth:36,textAlign:"right"}}>{sessions}</span>
               </div>
             </div>
-            <Label>Standard-Modell für neue Steps</Label>
-            <ModelSelect label="Standard-Modell für neue Steps" models={models} value={cModelId} onChange={setCModelId}/>
+            <Label>Default model for new steps</Label>
+            <ModelSelect label="Default model for new steps" models={models} value={cModelId} onChange={setCModelId}/>
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:cModel.color}}>
-              Kosten gesamt: {money(totCost)}
+              Total cost: {money(totCost)}
             </div>
           </Panel>
-          <Panel title={`Review-Session (${reviewCount}×, mindestens eine Review je ${reviewEvery} Sessions)`}>
+          <Panel title={`Review Session (${reviewCount}×, at least one review every ${reviewEvery} sessions)`}>
             <div style={{marginBottom:14}}>
-              <Label>Review-Modell</Label>
-              <ModelSelect label="Review-Modell" models={models} value={rModelId} onChange={setRModelId}/>
+              <Label>Review model</Label>
+              <ModelSelect label="Review model" models={models} value={rModelId} onChange={setRModelId}/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
               <div>
-                <Label>Intervall</Label>
-                <input aria-label="Review-Intervall" type="number" value={reviewEvery} min={1} max={100} step={1}
+                <Label>Interval</Label>
+                <input aria-label="Review-Interval" type="number" value={reviewEvery} min={1} max={100} step={1}
                   onChange={e=>setReviewEvery(Math.max(1,parseInt(e.target.value)||1))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.purple,fontFamily:C.mono,fontSize:15,
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
-                <Label>Input-Tokens (k)</Label>
-                <input aria-label="Review Input-Tokens" type="number" value={revInK} min={1} max={2000} step={1}
+                <Label>Input tokens (k)</Label>
+                <input aria-label="Review input tokens" type="number" value={revInK} min={1} max={2000} step={1}
                   onChange={e=>setRevInK(Math.max(1,parseInt(e.target.value)||1))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.teal,fontFamily:C.mono,fontSize:15,
@@ -560,8 +587,8 @@ function App() {
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
-                <Label>Output-Tokens (k)</Label>
-                <input aria-label="Review Output-Tokens" type="number" value={revOutK} min={1} max={500} step={1}
+                <Label>Output tokens (k)</Label>
+                <input aria-label="Review output tokens" type="number" value={revOutK} min={1} max={500} step={1}
                   onChange={e=>setRevOutK(Math.max(1,parseInt(e.target.value)||1))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.amber,fontFamily:C.mono,fontSize:15,
@@ -569,23 +596,40 @@ function App() {
               </div>
             </div>
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:rModel.color}}>
-              Review-Kosten: {reviewCount} × {money(oneRevCost)} = {money(revCost)}
+              Review cost: {reviewCount} × {money(oneRevCost)} = {money(revCost)}
             </div>
             <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
-              Cache-Read Tokens werden vom Input abgezogen und nur zum Cache-Preis berechnet; sie werden nicht zusätzlich zum vollen Input-Preis gezählt.
+              Cache-read tokens are subtracted from input and charged only at the cache price; they are not also counted at the full input price.
             </div>
           </Panel>
-          <Panel title="Daten & Teilen">
+          <Panel title="Monthly Budgets">
+            <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5,marginBottom:12}}>
+              Edit the monthly budget used by plan coverage. Set a budget to 0 to mark it as unset.
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
+              {PLANS.map(plan=>(
+                <div key={plan.id}>
+                  <Label>{plan.name} budget ({currency})</Label>
+                  <input aria-label={`${plan.name} monthly budget`} type="number" value={planBudgets[plan.id]} min={0} step={1}
+                    onChange={e=>updPlanBudget(plan.id,e.target.value)}
+                    style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
+                      borderRadius:4,color:C.blue,fontFamily:C.mono,fontSize:15,
+                      padding:"9px 10px",textAlign:"right"}}/>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <Panel title="Data & Sharing">
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
-              <button onClick={saveAsDefault} style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,fontWeight:700,padding:"10px"}}>Als Standard speichern</button>
-              <button onClick={loadSavedDefault} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Standard laden</button>
+              <button onClick={saveAsDefault} style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,fontWeight:700,padding:"10px"}}>Save as default</button>
+              <button onClick={loadSavedDefault} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Load default</button>
               <button onClick={shareConfig} style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,fontWeight:700,padding:"10px"}}>Share-Link</button>
               <button onClick={exportConfig} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Export JSON</button>
               <button onClick={()=>importRef.current.click()} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Import JSON</button>
               <button onClick={resetAll} style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:7,color:C.red,fontWeight:700,padding:"10px"}}>Reset</button>
             </div>
             {saveNotice && <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginTop:10}}>{saveNotice}</div>}
-            <input ref={importRef} aria-label="Konfiguration importieren" type="file" accept="application/json" onChange={importConfig} style={{display:"none"}}/>
+            <input ref={importRef} aria-label="Import configuration" type="file" accept="application/json" onChange={importConfig} style={{display:"none"}}/>
             {shareUrl && <input aria-label="Share-Link" readOnly value={shareUrl} onFocus={e=>e.target.select()}
               style={{marginTop:10,width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                 borderRadius:4,color:C.text,fontFamily:C.mono,fontSize:11,padding:"9px 10px"}}/>}
@@ -594,14 +638,14 @@ function App() {
 
         {/* MODELS */}
         {tab==="models" && (
-          <Panel title="Modelle & Preise" badge={`${currency} / Million Tokens`}>
+          <Panel title="Models & Prices" badge={`${currency} / Million Tokens`}>
             <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:12}}>
-              <span style={{fontFamily:C.mono,fontSize:11,color:C.muted}}>Währung</span>
-              <ModelSelect label="Währung" models={Object.keys(RATES).map(id=>({id,name:id}))} value={currency} onChange={setCurrency}/>
+              <span style={{fontFamily:C.mono,fontSize:11,color:C.muted}}>Currency</span>
+              <ModelSelect label="Currency" models={Object.keys(RATES).map(id=>({id,name:id}))} value={currency} onChange={setCurrency}/>
             </div>
             <div style={{marginBottom:16}}>
               <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,marginBottom:8}}>
-                KOSTEN-VORSCHAU ({sessions} SESSIONS)
+                COST PREVIEW ({sessions} SESSIONS)
               </div>
               {models.map(m=>{
                 const total=calcCost(m,totInK,totCacheK,totOutK);
@@ -626,13 +670,13 @@ function App() {
               <div key={m.id} style={{background:C.s3,borderRadius:8,padding:12,
                 border:`1px solid ${C.border}`,marginBottom:10}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                  <input aria-label={`Farbe für ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
+                  <input aria-label={`Color for ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
                     style={{width:28,height:28,border:"none",borderRadius:4,
                       cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
-                  <input aria-label="Modellname" value={m.name} onChange={e=>updModel(m.id,"name",e.target.value)}
+                  <input aria-label="Model name" value={m.name} onChange={e=>updModel(m.id,"name",e.target.value)}
                     style={{flex:1,background:"transparent",border:"none",color:m.color,
                       fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
-                  <button aria-label={`${m.name} löschen`} disabled={models.length<=1} onClick={()=>delModel(m.id)}
+                  <button aria-label={`Delete ${m.name}`} disabled={models.length<=1} onClick={()=>delModel(m.id)}
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
@@ -640,7 +684,7 @@ function App() {
                   {[["inputP","Input",C.teal],["cacheP","Cache",C.muted],["outputP","Output",C.amber]].map(([f,l,c])=>(
                     <div key={f}>
                       <Label>{l} $/M</Label>
-                      <input aria-label={`${m.name} ${l} Preis`} type="number" value={m[f]} min={0} max={9999} step={0.01}
+                      <input aria-label={`${m.name} ${l} price`} type="number" value={m[f]} min={0} max={9999} step={0.01}
                         onChange={e=>updModel(m.id,f,parseFloat(e.target.value)||0)}
                         style={{width:"100%",background:C.s2,border:`1px solid ${C.border2}`,
                           borderRadius:4,color:c,fontFamily:C.mono,fontSize:13,
@@ -653,11 +697,11 @@ function App() {
             {addOpen ? (
               <div style={{background:C.s3,borderRadius:8,padding:12,border:`1px solid ${C.border2}`}}>
                 <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:10,letterSpacing:0.3}}>
-                  NEUES MODELL
+                  NEW MODEL
                 </div>
                 <div style={{marginBottom:10}}>
                   <Label>Name</Label>
-                  <input aria-label="Name des neuen Modells" value={draft.name} placeholder="z.B. Claude 4.7 Opus"
+                  <input aria-label="New model name" value={draft.name} placeholder="e.g. Claude Opus 4.6"
                     onChange={e=>setDraft(d=>({...d,name:e.target.value}))}
                     style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
                       borderRadius:4,color:C.text,fontFamily:C.sans,fontSize:13,padding:"9px 10px"}}/>
@@ -666,7 +710,7 @@ function App() {
                   {[["inputP","Input"],["cacheP","Cache-Read"],["outputP","Output"]].map(([f,l])=>(
                     <div key={f}>
                       <Label>{l} $/M</Label>
-                      <input aria-label={`Neues Modell ${l} Preis`} type="number" value={draft[f]} min={0} step={0.01}
+                      <input aria-label={`New model ${l} price`} type="number" value={draft[f]} min={0} step={0.01}
                         onChange={e=>setDraft(d=>({...d,[f]:parseFloat(e.target.value)||0}))}
                         style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
                           borderRadius:4,color:C.text,fontFamily:C.mono,fontSize:13,
@@ -675,8 +719,8 @@ function App() {
                   ))}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                  <Label>Farbe:</Label>
-                  <input aria-label="Farbe des neuen Modells" type="color" value={draft.color}
+                  <Label>Color:</Label>
+                  <input aria-label="New model color" type="color" value={draft.color}
                     onChange={e=>setDraft(d=>({...d,color:e.target.value}))}
                     style={{width:44,height:36,border:`1px solid ${C.border2}`,
                       borderRadius:4,cursor:"pointer",padding:2,background:C.s1}}/>
@@ -685,16 +729,16 @@ function App() {
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={commitAdd} style={{flex:1,background:`${C.teal}22`,
                     border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,
-                    fontWeight:700,fontSize:13,padding:"11px 0"}}>Hinzufügen</button>
+                    fontWeight:700,fontSize:13,padding:"11px 0"}}>Add</button>
                   <button onClick={()=>setAddOpen(false)} style={{background:"transparent",
                     border:`1px solid ${C.border2}`,borderRadius:7,color:C.muted,
-                    fontWeight:600,fontSize:13,padding:"11px 16px"}}>Abbrechen</button>
+                    fontWeight:600,fontSize:13,padding:"11px 16px"}}>Cancel</button>
                 </div>
               </div>
             ) : (
               <button onClick={()=>setAddOpen(true)} style={{width:"100%",background:"transparent",
                 border:`1px dashed ${C.border2}`,borderRadius:8,color:C.muted,
-                fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Modell hinzufügen</button>
+                fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Add model</button>
             )}
           </Panel>
         )}
@@ -711,7 +755,7 @@ function App() {
           <div style={{background:C.s2,borderRadius:10,padding:"18px 14px",
             border:`1px solid ${C.border2}`,marginBottom:12,textAlign:"center"}}>
             <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:6}}>
-              ∑ GESAMTKOSTEN · {sessions+reviewCount} SESSIONS
+              ∑ TOTAL COST · {sessions+reviewCount} SESSIONS
             </div>
             <div style={{fontFamily:C.mono,fontWeight:800,fontSize:36,color:C.purple}}>
               {money(grand)}
@@ -721,7 +765,7 @@ function App() {
             </div>
           </div>
 
-          <Panel title="Aufschlüsselung">
+          <Panel title="Breakdown">
             {[
               {label:`1 Session (${sessionModelLabel})`,inK:sesInK,cacheK:sesCacheK,outK:sesOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:sesCost},
               {label:`${sessions}× Sessions`,inK:totInK,cacheK:totCacheK,outK:totOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:totCost,bold:true},
@@ -742,7 +786,7 @@ function App() {
               </div>
             ))}
             <div style={{paddingTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontWeight:800,color:C.text}}>∑ Durchgang</span>
+              <span style={{fontWeight:800,color:C.text}}>∑ Run</span>
               <span style={{fontFamily:C.mono,fontWeight:800,fontSize:18,color:C.purple}}>{money(grand)}</span>
             </div>
           </Panel>
@@ -766,17 +810,18 @@ function App() {
             ))}
           </Panel>
 
-          <Panel title="Plan-Abdeckung / Monat">
+          <Panel title="Plan Coverage / Month">
             {PLANS.map(plan=>{
-              const cycles=plan.price>0?Math.floor(plan.price/grand):0;
-              const barPct=plan.price>0?Math.min((grand/plan.price)*100,100):0;
-              const ok=plan.price>0 && grand<=plan.price;
+              const budget=planBudgets[plan.id] || 0;
+              const cycles=budget>0?Math.floor(budget/grand):0;
+              const barPct=budget>0?Math.min((grand/budget)*100,100):0;
+              const ok=budget>0 && grand<=budget;
               return (
-                <div key={plan.name} style={{background:C.s3,borderRadius:8,padding:"12px 13px",
+                <div key={plan.id} style={{background:C.s3,borderRadius:8,padding:"12px 13px",
                   border:`1px solid ${ok?C.teal+"44":C.border}`,marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:9}}>
                     <span style={{fontWeight:800,fontSize:13}}>{plan.name}</span>
-                    <span style={{fontFamily:C.mono,fontSize:12,color:C.muted}}>{plan.price?`${money(plan.price)}/Mo`:plan.allowance}</span>
+                    <span style={{fontFamily:C.mono,fontSize:12,color:C.muted}}>{budget?`${money(budget)}/mo`:"No budget set"}</span>
                   </div>
                   <div style={{height:6,background:C.border,borderRadius:3,marginBottom:9,overflow:"hidden"}}>
                     <div style={{height:"100%",width:`${barPct}%`,
@@ -784,10 +829,10 @@ function App() {
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
                     <span style={{fontFamily:C.mono,fontWeight:700,color:ok?C.green:C.red}}>
-                      {plan.price?`~${cycles}× Durchgänge/Mo`:"Kein Budget hinterlegt"}
+                      {budget?`~${cycles}× runs/mo`:"No coverage calculated"}
                     </span>
                     <span style={{fontFamily:C.mono,color:C.muted}}>
-                      {plan.price?`${Math.min(barPct,100).toFixed(0)}% verbraucht`:plan.allowance}
+                      {budget?`${Math.min(barPct,100).toFixed(0)}% used`:"Set a budget in Config"}
                     </span>
                   </div>
                 </div>

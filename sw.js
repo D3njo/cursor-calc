@@ -1,4 +1,4 @@
-const CACHE = 'cursor-calc-v3';
+const CACHE = 'cursor-calc-v4';
 // Increment CACHE whenever app shell files or cached CDN dependencies change.
 const ASSETS = [
   './',
