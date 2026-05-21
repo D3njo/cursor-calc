@@ -303,7 +303,7 @@ function parseCursorPricing(html) {
     .replace(/[ \t]+/g," ");
   for (const line of text.split(/\n+/)) {
     for (const match of line.matchAll(TEXT_PRICE_ROW_RE)) {
-    const {1: rawName, 2: inputPrice, 3: secondPrice, 4: thirdPrice, 5: fourthPrice} = match;
+    const [,rawName,inputPrice,secondPrice,thirdPrice,fourthPrice] = match;
     const name = rawName.replace(/(?:Input|Cached input|Cache read|Output|Price).*$/i,"").trim();
     addParsedModel({
       name,
@@ -440,7 +440,7 @@ function App() {
   const totOutK = sessions * sesOutK;
   const customModels = models.filter(isCustomModel);
   const cursorModels = models.filter(isCursorModel);
-  const activeModels = models.filter(m=>activeModelIds.includes(m.id) || isCustomModel(m));
+  const activeModels = models.filter(m=>!isPlaceholderModel(m) && (activeModelIds.includes(m.id) || isCustomModel(m)));
   const previewModels = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m));
   const getModelsForSelectValue = value => {
     const active = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m)).slice(0,1);
@@ -555,7 +555,7 @@ function App() {
     setActiveModelIds(ids=>{
       if(available) return ids.includes(model.id) ? ids : [...ids,model.id];
       const next = ids.filter(id=>id!==model.id);
-      const fallback = activeModels.find(m=>m.id!==model.id) || models.find(m=>m.id!==model.id && !isPlaceholderModel(m));
+      const fallback = activeModels.find(m=>m.id!==model.id && !isPlaceholderModel(m)) || models.find(m=>m.id!==model.id && !isPlaceholderModel(m));
       if(!fallback) return ids;
       setSteps(ss=>ss.map(s=>s.modelId===model.id?{...s,modelId:fallback.id}:s));
       if(cModelId===model.id) setCModelId(fallback.id);
