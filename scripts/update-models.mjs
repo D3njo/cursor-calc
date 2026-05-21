@@ -1,41 +1,37 @@
 #!/usr/bin/env node
-// Scrape the Cursor models & pricing page and write models.json.
+// Sync Cursor API model pricing into models.json.
 // No npm dependencies: runs on plain Node 20+ (built-in fetch).
 //
-// The page at https://cursor.com/docs/models-and-pricing is a Mintlify-built
-// docs site. The model pricing table is server-rendered into the initial HTML,
-// so a plain fetch + tag-based parser is enough to extract it.
+// Primary source: https://cursor.com/docs/models-and-pricing.md
+// Cursor docs are client-rendered HTML (no <table> in initial response), but the
+// official .md endpoint (listed in llms.txt) ships pipe tables with all prices.
 //
 // Exits non-zero (without writing) if no models can be parsed, so a scheduled
 // workflow does not commit an empty catalog.
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
+import { parseNotesRules } from "./pricing-rules.mjs";
 
-const PRIMARY_SOURCE_URL = "https://cursor.com/docs/models-and-pricing";
-// The Mintlify-built docs page used to render its pricing tables straight into
-// the initial HTML, but the markup occasionally changes (different domain,
-// client-rendered tables, etc.). To stay resilient we try a handful of known
-// variants in order and use the first one that yields a usable parse.
+const PRIMARY_SOURCE_URL = "https://cursor.com/docs/models-and-pricing.md";
 const SOURCE_URLS = [
   PRIMARY_SOURCE_URL,
+  "https://cursor.com/docs/models-and-pricing",
+  "https://www.cursor.com/docs/models-and-pricing.md",
   "https://www.cursor.com/docs/models-and-pricing",
-  "https://docs.cursor.com/models-and-pricing",
-  "https://cursor.com/pricing",
 ];
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUTPUT = join(ROOT, "models.json");
-const MIN_EXPECTED_MODELS = 5;
+const MIN_EXPECTED_MODELS = 30;
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/124.0.0.0 Safari/537.36 cursor-calc-update-bot/1.0 " +
   "(+https://github.com/D3njo/cursor-calc)";
 
-// ---------- HTML helpers (no DOM, no deps) ----------
+// ---------- Text helpers (no DOM, no deps) ----------
 
 function decodeEntities(s) {
-  // Decode &amp; LAST so we don't double-unescape sequences like "&amp;nbsp;".
   return s
     .replace(/&nbsp;/gi, " ")
     .replace(/&lt;/gi, "<")
@@ -55,14 +51,90 @@ function stripHtml(s) {
 }
 
 function parsePrice(s) {
-  // Cursor prices look like "$3", "$3.75", "$0.3"; never use thousands
-  // separators. Strip thousands-style commas only when a dot is also present
-  // so European decimal commas (e.g. "3,75") still parse.
   const raw = String(s);
   const normalized = raw.includes(".") ? raw.replace(/,/g, "") : raw.replace(/,/g, ".");
   const m = normalized.match(/\$?\s*([0-9]+(?:\.[0-9]+)?)/);
   return m ? Number(m[1]) : 0;
 }
+
+// ---------- Markdown table parser ----------
+
+function parseMarkdownRow(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|")) return null;
+  const inner = trimmed.replace(/^\|/, "").replace(/\|$/, "");
+  return inner.split("|").map((c) => c.trim());
+}
+
+function isMarkdownSeparatorRow(cells) {
+  return cells.every((c) => /^:?-+:?$/.test(c.replace(/\s/g, "")));
+}
+
+function extractModelName(cell) {
+  const m = String(cell).match(/\[([^\]]+)\]\([^)]*\)/);
+  if (m) return m[1].replace(/\s+/g, " ").trim();
+  return String(cell).replace(/\s+/g, " ").trim();
+}
+
+function extractMarkdownTables(md) {
+  const tables = [];
+  let current = null;
+  for (const line of md.split("\n")) {
+    if (line.includes("|")) {
+      const cells = parseMarkdownRow(line);
+      if (!cells || !cells.length) continue;
+      if (!current) current = [];
+      current.push(cells);
+    } else if (current) {
+      if (current.length) tables.push(current);
+      current = null;
+    }
+  }
+  if (current?.length) tables.push(current);
+  return tables;
+}
+
+function parseModelsFromMarkdown(md) {
+  const tables = extractMarkdownTables(md);
+  const cleaned = tables
+    .map((rows) => rows.filter((cells) => !isMarkdownSeparatorRow(cells)))
+    .filter((rows) => rows.length >= 2);
+  return parseModelsFromTables(cleaned);
+}
+
+/** Parse ### Auto pricing table (Token type | Price per 1M tokens). */
+function parseAutoPoolFromMarkdown(md) {
+  const tables = extractMarkdownTables(md)
+    .map((rows) => rows.filter((cells) => !isMarkdownSeparatorRow(cells)))
+    .filter((rows) => rows.length >= 2);
+
+  for (const rows of tables) {
+    const header = rows[0].map((h) => h.toLowerCase());
+    const typeIdx = header.findIndex((h) => h.includes("token"));
+    const priceIdx = header.findIndex((h) => h.includes("price"));
+    if (typeIdx < 0 || priceIdx < 0) continue;
+
+    const pool = { name: "Auto + Composer", inputP: 0, cacheP: 0, cacheWriteP: 0, outputP: 0 };
+    for (let i = 1; i < rows.length; i++) {
+      const label = rows[i][typeIdx].toLowerCase();
+      const price = parsePrice(rows[i][priceIdx]);
+      if (!price) continue;
+      if (label.includes("cache read")) pool.cacheP = price;
+      else if (label.includes("output")) pool.outputP = price;
+      else if (label.includes("input") && label.includes("cache write")) {
+        pool.inputP = price;
+        pool.cacheWriteP = price;
+      } else if (label.includes("input")) pool.inputP = price;
+      else if (label.includes("cache write")) pool.cacheWriteP = price;
+    }
+    if (pool.inputP && pool.outputP) return pool;
+  }
+  return null;
+}
+
+export { parseModelsFromMarkdown, parseAutoPoolFromMarkdown, extractMarkdownTables, parsePrice };
+
+// ---------- HTML table parser ----------
 
 function extractTables(html) {
   const tables = [];
@@ -84,7 +156,7 @@ function extractTables(html) {
   return tables;
 }
 
-// ---------- Pricing table parser ----------
+// ---------- Shared pricing table parser ----------
 
 const CACHE_READ_HEADERS = ["cache read", "cached input", "cache hit"];
 const CACHE_WRITE_HEADERS = [
@@ -117,9 +189,6 @@ function findHeaderIndex(headers, words) {
   return headers.findIndex((h) => words.some((w) => h.includes(w)));
 }
 
-// Find the first index whose header contains any of `words` AND none of `excludeWords`.
-// Falls back to the plain `findHeaderIndex` match if no exclusive match exists, so a
-// table that only has a "Cached input" column still parses (just less precisely).
 function findHeaderIndexExcluding(headers, words, excludeWords) {
   const strict = headers.findIndex(
     (h) => words.some((w) => h.includes(w)) && !excludeWords.some((w) => h.includes(w))
@@ -127,14 +196,19 @@ function findHeaderIndexExcluding(headers, words, excludeWords) {
   return strict >= 0 ? strict : findHeaderIndex(headers, words);
 }
 
-// The first row isn't always the header row: Mintlify occasionally renders a
-// section-label row (single cell with colspan) or a multi-row header (e.g. a
-// "Pricing ($/1M tokens)" group above the actual `Input`/`Output` columns).
-// Pick the first row that actually looks like a pricing header.
+function isModelPricingHeaderRow(headers) {
+  const lower = headers.map((h) => h.toLowerCase());
+  const hasModel = lower.some((h) => h.includes("model") || h === "name");
+  const hasInput = lower.some((h) => h.includes("input"));
+  const hasOutput = lower.some((h) => h.includes("output"));
+  return hasModel && hasInput && hasOutput;
+}
+
 function findHeaderRowIndex(rows) {
   for (let i = 0; i < rows.length; i++) {
     const headers = rows[i].map((h) => h.toLowerCase());
     if (
+      isModelPricingHeaderRow(headers) &&
       headers.some((h) => h.includes("input")) &&
       headers.some((h) => h.includes("output"))
     ) {
@@ -151,31 +225,25 @@ function parseModelsFromTables(tables) {
     const headerRowIdx = findHeaderRowIndex(rows);
     if (headerRowIdx < 0) continue;
     const headers = rows[headerRowIdx].map((h) => h.toLowerCase());
+    if (!isModelPricingHeaderRow(headers)) continue;
     const nameIdx = Math.max(findHeaderIndex(headers, ["model", "name"]), 0);
-    // Avoid binding the "Input" column to "Cached input" / "Output" to a
-    // hypothetical "Output cache" column when both variants are present.
     const inputIdx = findHeaderIndexExcluding(headers, ["input"], ["cache", "cached"]);
     const outputIdx = findHeaderIndexExcluding(headers, ["output"], ["cache", "cached"]);
     if (inputIdx < 0 || outputIdx < 0) continue;
     const cacheReadIdx = findHeaderIndex(headers, CACHE_READ_HEADERS);
     const cacheWriteIdx = findHeaderIndex(headers, CACHE_WRITE_HEADERS);
-    // Only require enough cells to read name/input/output. Cache columns are
-    // often blank or merged-away for non-Anthropic providers, so demanding a
-    // cell at every header index would silently drop those rows.
+    const notesIdx = findHeaderIndex(headers, ["notes", "note"]);
     const minCells = Math.max(nameIdx, inputIdx, outputIdx) + 1;
 
     for (let i = headerRowIdx + 1; i < rows.length; i++) {
       const cells = rows[i];
       if (cells.length < minCells) continue;
       const rawName = cells[nameIdx] || "";
-      // Strip provider icons / "(beta)" notes that follow the model name.
-      const name = rawName.replace(/\s+/g, " ").trim();
+      const name = extractModelName(rawName);
       if (!isValidModelName(name)) continue;
       const inputP = parsePrice(cells[inputIdx]);
       const outputP = parsePrice(cells[outputIdx]);
       if (!inputP || !outputP) continue;
-      // Cache columns are optional per-row: missing/empty/"-"/"N/A" all parse
-      // to 0, which is the right value for models without cache pricing.
       const cacheP =
         cacheReadIdx >= 0 && cacheReadIdx < cells.length
           ? parsePrice(cells[cacheReadIdx])
@@ -184,19 +252,19 @@ function parseModelsFromTables(tables) {
         cacheWriteIdx >= 0 && cacheWriteIdx < cells.length
           ? parsePrice(cells[cacheWriteIdx])
           : 0;
-      byKey.set(nameKey(name), { name, inputP, cacheP, cacheWriteP, outputP });
+      const notes =
+        notesIdx >= 0 && notesIdx < cells.length ? String(cells[notesIdx]).trim() : "";
+      const rules = parseNotesRules(notes, name);
+      const entry = { name, inputP, cacheP, cacheWriteP, outputP };
+      if (notes) entry.notes = notes;
+      if (Object.keys(rules).length) entry.rules = rules;
+      byKey.set(nameKey(name), entry);
     }
   }
   return [...byKey.values()];
 }
 
 // ---------- JSON fallback parser ----------
-//
-// If the page no longer ships a server-rendered <table>, the model catalog is
-// usually still embedded as JSON inside a <script> tag (Next.js __NEXT_DATA__
-// or similar hydration payload). Walk that JSON and harvest any object that
-// looks like a model pricing entry: it has a name-ish field together with at
-// least an input and output price (numbers or "$X" strings).
 
 function toPriceNumber(v) {
   if (v == null) return 0;
@@ -219,7 +287,6 @@ const CACHE_WRITE_KEYS = [
 
 function pickField(obj, keys) {
   for (const k of keys) if (k in obj) return obj[k];
-  // case-insensitive fallback
   const lower = new Map(Object.keys(obj).map((k) => [k.toLowerCase(), k]));
   for (const k of keys) {
     const hit = lower.get(k.toLowerCase());
@@ -238,11 +305,7 @@ function harvestJsonModels(node, out) {
   const rawName = pickField(node, NAME_KEYS);
   const rawInput = pickField(node, INPUT_KEYS);
   const rawOutput = pickField(node, OUTPUT_KEYS);
-  if (
-    typeof rawName === "string" &&
-    rawInput != null &&
-    rawOutput != null
-  ) {
+  if (typeof rawName === "string" && rawInput != null && rawOutput != null) {
     const name = stripHtml(rawName);
     if (isValidModelName(name)) {
       const inputP = toPriceNumber(rawInput);
@@ -266,52 +329,84 @@ function parseModelsFromJsonBlobs(html) {
   let sm;
   while ((sm = scriptRe.exec(html))) {
     const body = sm[1].trim();
-    if (!body || body[0] !== "{" && body[0] !== "[") {
-      // Try to locate any JSON-looking object inside the script body.
+    if (!body || (body[0] !== "{" && body[0] !== "[")) {
       const jsonRe = /(\{[\s\S]*\}|\[[\s\S]*\])/;
       const m = body.match(jsonRe);
       if (!m) continue;
       try {
         harvestJsonModels(JSON.parse(m[1]), out);
       } catch {
-        // Not valid JSON (regex picked up code, not data) — skip silently.
+        // skip
       }
       continue;
     }
     try {
       harvestJsonModels(JSON.parse(body), out);
     } catch {
-      // Script body wasn't pure JSON — common for inline JS — skip silently.
+      // skip
     }
   }
   return [...out.values()];
 }
 
+// ---------- Content parsing ----------
+
+function isMarkdownSource(url, text) {
+  return url.endsWith(".md") || text.includes("### Model pricing");
+}
+
+function parseContent(text, url) {
+  const mdTables = isMarkdownSource(url, text) ? extractMarkdownTables(text).length : 0;
+
+  if (isMarkdownSource(url, text)) {
+    const fromMd = parseModelsFromMarkdown(text);
+    if (fromMd.length >= MIN_EXPECTED_MODELS) {
+      return {
+        models: fromMd,
+        strategy: "markdown",
+        tables: mdTables,
+        mdTables,
+        sample: fromMd.slice(0, 3).map((m) => m.name),
+      };
+    }
+  }
+
+  const htmlTables = extractTables(text);
+  const fromTables = parseModelsFromTables(htmlTables);
+  if (fromTables.length >= MIN_EXPECTED_MODELS) {
+    return {
+      models: fromTables,
+      strategy: "tables",
+      tables: htmlTables.length,
+      mdTables,
+      sample: fromTables.slice(0, 3).map((m) => m.name),
+    };
+  }
+
+  const fromJson = parseModelsFromJsonBlobs(text);
+  const best = fromJson.length >= fromTables.length ? fromJson : fromTables;
+  const strategy = fromJson.length >= fromTables.length ? "json" : "tables";
+  return {
+    models: best,
+    strategy,
+    tables: htmlTables.length,
+    mdTables,
+    sample: best.slice(0, 3).map((m) => m.name),
+  };
+}
+
 // ---------- Main ----------
 
 async function fetchUrl(url) {
+  const accept = url.endsWith(".md")
+    ? "text/plain,text/markdown,*/*"
+    : "text/html,application/xhtml+xml";
   const res = await fetch(url, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "text/html,application/xhtml+xml",
-    },
+    headers: { "User-Agent": USER_AGENT, Accept: accept },
     redirect: "follow",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
   return await res.text();
-}
-
-function parseModelsFromHtml(html) {
-  const tables = extractTables(html);
-  const fromTables = parseModelsFromTables(tables);
-  if (fromTables.length >= MIN_EXPECTED_MODELS) {
-    return { models: fromTables, strategy: "tables", tables: tables.length };
-  }
-  const fromJson = parseModelsFromJsonBlobs(html);
-  if (fromJson.length >= fromTables.length) {
-    return { models: fromJson, strategy: "json", tables: tables.length };
-  }
-  return { models: fromTables, strategy: "tables", tables: tables.length };
 }
 
 async function tryFetchAndParse() {
@@ -319,12 +414,12 @@ async function tryFetchAndParse() {
   let lastDiagnostic = null;
   for (const url of SOURCE_URLS) {
     try {
-      const html = await fetchUrl(url);
-      const { models, strategy, tables } = parseModelsFromHtml(html);
-      if (models.length >= MIN_EXPECTED_MODELS) {
-        return { url, models, strategy };
+      const text = await fetchUrl(url);
+      const parsed = parseContent(text, url);
+      if (parsed.models.length >= MIN_EXPECTED_MODELS) {
+        return { url, text, ...parsed };
       }
-      lastDiagnostic = { url, html, models, strategy, tables };
+      lastDiagnostic = { url, text, ...parsed };
     } catch (err) {
       errors.push(`${url}: ${err.message}`);
     }
@@ -345,17 +440,32 @@ function sortModels(models) {
   return [...models].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function rulesEqual(a, b) {
+  const x = a || {};
+  const y = b || {};
+  const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+  for (const k of keys) {
+    if (x[k] !== y[k]) return false;
+  }
+  return true;
+}
+
 function modelsEqual(a, b) {
   if (!a || !b || a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const x = a[i];
-    const y = b[i];
+  const byKeyA = new Map(a.map((m) => [nameKey(m.name), m]));
+  const byKeyB = new Map(b.map((m) => [nameKey(m.name), m]));
+  if (byKeyA.size !== byKeyB.size) return false;
+  for (const [key, x] of byKeyA) {
+    const y = byKeyB.get(key);
+    if (!y) return false;
     if (
       x.name !== y.name ||
       x.inputP !== y.inputP ||
       x.cacheP !== y.cacheP ||
       x.cacheWriteP !== y.cacheWriteP ||
-      x.outputP !== y.outputP
+      x.outputP !== y.outputP ||
+      (x.notes || "") !== (y.notes || "") ||
+      !rulesEqual(x.rules, y.rules)
     ) {
       return false;
     }
@@ -363,7 +473,18 @@ function modelsEqual(a, b) {
   return true;
 }
 
-(async () => {
+function autoPoolEqual(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.inputP === b.inputP &&
+    a.cacheP === b.cacheP &&
+    a.cacheWriteP === b.cacheWriteP &&
+    a.outputP === b.outputP
+  );
+}
+
+async function main() {
   const result = await tryFetchAndParse();
   if (result.failed) {
     console.error("Refusing to write models.json: every source URL failed.");
@@ -372,23 +493,30 @@ function modelsEqual(a, b) {
       for (const e of result.errors) console.error("  -", e);
     }
     if (result.diagnostic) {
-      const { url, html, models, strategy, tables } = result.diagnostic;
+      const { url, text, models, strategy, tables, mdTables, sample } = result.diagnostic;
       console.error(
-        `Last attempt: ${url} (strategy=${strategy}, html=${html.length}b, ` +
-          `tables=${tables}, parsed=${models.length})`
+        `Last attempt: ${url} (strategy=${strategy}, size=${text.length}b, ` +
+          `htmlTables=${tables}, mdTables=${mdTables ?? 0}, parsed=${models.length})`
       );
-      console.error("--- HTML preview (first 2000 chars) ---");
-      console.error(html.slice(0, 2000));
+      if (sample?.length) {
+        console.error(`Sample parsed: ${sample.join(", ")}`);
+      }
+      console.error("--- Content preview (first 2000 chars) ---");
+      console.error(text.slice(0, 2000));
       console.error("--- end preview ---");
     }
     process.exit(1);
   }
 
-  const { url, models: parsed, strategy } = result;
+  const { url, text, models: parsed, strategy } = result;
   const models = sortModels(parsed);
+  const autoPool = parseAutoPoolFromMarkdown(text);
 
   const existing = readExisting();
-  const sameModels = existing && modelsEqual(sortModels(existing.models || []), models);
+  const sameModels =
+    existing &&
+    modelsEqual(sortModels(existing.models || []), models) &&
+    autoPoolEqual(existing.autoPool, autoPool);
   if (sameModels) {
     console.log(`No changes (${models.length} models from ${url} via ${strategy}).`);
     return;
@@ -399,9 +527,21 @@ function modelsEqual(a, b) {
     source: url,
     models,
   };
+  if (autoPool) payload.autoPool = autoPool;
   writeFileSync(OUTPUT, JSON.stringify(payload, null, 2) + "\n", "utf8");
-  console.log(`Wrote ${models.length} models to ${OUTPUT} (source=${url}, strategy=${strategy}).`);
-})().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+  console.log(
+    `Wrote ${models.length} models to ${OUTPUT} (source=${url}, strategy=${strategy}` +
+      `${autoPool ? ", autoPool=yes" : ""}).`
+  );
+}
+
+const isMain =
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

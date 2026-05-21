@@ -16,6 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="module" src="./scripts/calc-bridge.mjs"></script>
 
 <script>
 // Apple touch icon (inline SVG as data URI)
@@ -143,39 +144,59 @@ const C = {
   mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
 };
 
-const STORAGE_KEY = "cursor-calc:v4";
+const STORAGE_KEY = "cursor-calc:v7";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
-// Catalog of Cursor models is shipped as a same-origin JSON file refreshed
-// daily by the `Update Cursor models` GitHub Action (scripts/update-models.mjs).
-// This avoids the CORS wall on cursor.com and means the calculator works
-// offline once the SW has cached the file.
 const CURSOR_CATALOG_URL = "./models.json";
-const PRICING_UPDATED = "Loaded from bundled catalog at startup";
+const ESTIMATION_NOTICE =
+  "Applies parsed docs rules (cache discounts, 2× >200k, Max/Fast mode). Image-output surcharges not modeled — compare with your usage dashboard.";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
+const {
+  calcCost, resolveRates, normalizeStep, normalizeReviewTokens, DEFAULT_AUTO_POOL,
+  calcCostWithRules, ruleBadges, totalInputK, resolveFastMode,
+} = window.CursorCalcLib;
+
 const PLACEHOLDER_MODEL_ID = "cursor-catalog-pending";
+const STANDARD_CUSTOM_MODEL = {
+  id:"custom-gemini-3-5-flash",
+  name:"Gemini 3.5 Flash",
+  inputP:1.5,
+  cacheP:0.15,
+  cacheWriteP:0,
+  outputP:9,
+  color:"#22d3ee",
+  source:"custom",
+  notes:"Not in Cursor docs yet. Prices estimated from Google Gemini API pricing; verify against your usage dashboard.",
+  rules:{ notInCursorDocs:true },
+};
+const STANDARD_CUSTOM_MODEL_IDS = new Set([STANDARD_CUSTOM_MODEL.id]);
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:100, cacheK:94,  outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:2, name:"Code",          inputK:215, cacheK:201, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:3, name:"Review / Plan", inputK:130, cacheK:122, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:4, name:"Code",          inputK:234, cacheK:219, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:1, name:"Review / Plan", inputK:6,  cacheReadK:94,  cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:2, name:"Code",          inputK:14, cacheReadK:201, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:3, name:"Review / Plan", inputK:8,  cacheReadK:122, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:4, name:"Code",          inputK:15, cacheReadK:219, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
 ];
 const DEFAULT_MODELS = [
   { id:PLACEHOLDER_MODEL_ID, name:"Loading Cursor models...", inputP:0, cacheP:0, cacheWriteP:0, outputP:0, color:"#5a6a85", source:"placeholder" },
+  {...STANDARD_CUSTOM_MODEL},
 ];
-const DEFAULT_ACTIVE_MODEL_IDS = [PLACEHOLDER_MODEL_ID];
+const DEFAULT_ACTIVE_MODEL_IDS = [PLACEHOLDER_MODEL_ID, STANDARD_CUSTOM_MODEL.id];
 const COLOR_PALETTE = ["#00d4aa","#5ba8ff","#ffb347","#c084fc","#f472b6","#4ade80","#22d3ee","#fb7185","#a3e635","#facc15"];
 const PLANS = [
-  { id:"hobby", name:"Hobby", defaultBudget:0 },
+  { id:"hobby", name:"Hobby (extra)", defaultBudget:0 },
   { id:"pro",   name:"Pro",   defaultBudget:20 },
-  { id:"proPlus", name:"Pro+", defaultBudget:60 },
-  { id:"ultra", name:"Ultra", defaultBudget:200 },
+  { id:"proPlus", name:"Pro+", defaultBudget:70 },
+  { id:"ultra", name:"Ultra", defaultBudget:400 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:20,cacheK:5,outputK:3,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
-  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
-  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:15,cacheReadK:5,cacheWriteK:0,outputK:3,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Patch",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Implement",inputK:50,cacheReadK:25,cacheWriteK:0,outputK:10,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Review",inputK:37,cacheReadK:18,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:60,cacheReadK:30,cacheWriteK:0,outputK:8,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Plan",inputK:45,cacheReadK:25,cacheWriteK:0,outputK:9,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:95,cacheReadK:45,cacheWriteK:0,outputK:16,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Validate",inputK:55,cacheReadK:25,cacheWriteK:0,outputK:7,modelId:PLACEHOLDER_MODEL_ID}] },
+];
+const USAGE_POOLS = [
+  { id:"api", name:"API pool (per model)" },
+  { id:"auto", name:"Auto + Composer pool" },
 ];
 const RATES = { USD:1, EUR:0.92 };
 const SYMBOLS = { USD:"$", EUR:"€" };
@@ -188,14 +209,40 @@ const fmtMoney = (n, cur) => {
 };
 const cloneSteps = steps => steps.map(s=>({...s}));
 const cloneModels = models => models.map(m=>({...m}));
-const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (cacheK/1000)*(m.cacheWriteP||0) + (outK/1000)*m.outputP;
 const defaultPlanBudgets = () => Object.fromEntries(PLANS.map(p=>[p.id,p.defaultBudget]));
-const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],sessions:5,cModelId:PLACEHOLDER_MODEL_ID,rModelId:PLACEHOLDER_MODEL_ID,revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD",planBudgets:defaultPlanBudgets()});
+const defaultConfig = () => ({
+  steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],
+  sessions:5,cModelId:PLACEHOLDER_MODEL_ID,rModelId:PLACEHOLDER_MODEL_ID,
+  revInK:10,revCacheReadK:70,revCacheWriteK:0,revOutK:1,reviewEvery:10,
+  usagePool:"api",maxMode:false,sessionFastMode:false,fastModeByModelId:{},currency:"USD",planBudgets:defaultPlanBudgets()
+});
+const ratesForModel = (model, usagePool, autoPool) => resolveRates(model, usagePool, autoPool || DEFAULT_AUTO_POOL);
+const pricingResult = (model, inputK, cacheReadK, cacheWriteK, outK, usagePool, autoPool, maxMode, sessionFastMode, fastModeByModelId) => {
+  const fastMode = resolveFastMode(model, sessionFastMode, fastModeByModelId);
+  return calcCostWithRules(
+    ratesForModel(model, usagePool, autoPool),
+    model?.rules,
+    inputK, cacheReadK, cacheWriteK, outK,
+    { maxMode, fastMode }
+  );
+};
+const stepCost = (step, model, usagePool, autoPool, maxMode, sessionFastMode, fastModeByModelId) =>
+  pricingResult(model, step.inputK, step.cacheReadK, step.cacheWriteK, step.outputK, usagePool, autoPool, maxMode, sessionFastMode, fastModeByModelId).cost;
+const stepPricingMeta = (step, model, usagePool, autoPool, maxMode, sessionFastMode, fastModeByModelId) =>
+  pricingResult(model, step.inputK, step.cacheReadK, step.cacheWriteK, step.outputK, usagePool, autoPool, maxMode, sessionFastMode, fastModeByModelId);
+const toggleModelFastMode = (modelId, models, sessionFastMode, fastModeByModelId) => {
+  const model = models.find(m => m.id === modelId);
+  if (!model) return fastModeByModelId;
+  const next = { ...fastModeByModelId };
+  const current = resolveFastMode(model, sessionFastMode, next);
+  next[modelId] = !current;
+  return next;
+};
 const normalizeModelName = name => String(name||"Model").replace(/\s+/g," ").trim();
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const MAX_MODEL_ID_SLUG_LENGTH = 48;
 const MIN_VALID_MODEL_KEY_LENGTH = 2;
-const MIN_EXPECTED_CURSOR_MODELS = 10;
+const MIN_EXPECTED_CURSOR_MODELS = 30;
 const modelIdFromName = name => {
   const slug = modelKey(name).replace(/\s+/g,"-").slice(0,MAX_MODEL_ID_SLUG_LENGTH);
   return slug ? `cursor-${slug}` : uid("cursor-m");
@@ -224,37 +271,58 @@ function sanitizeConfig(raw) {
   let models = Array.isArray(raw.models) && raw.models.length ? raw.models.map(m=>({
     id:String(m.id||uid("m")), name:normalizeModelName(m.name),
     inputP:Number(m.inputP)||0, cacheP:Number(m.cacheP)||0, cacheWriteP:Number(m.cacheWriteP)||0, outputP:Number(m.outputP)||0,
-    color:String(m.color||"#00d4aa"), source:String(m.source||"custom")
+    color:String(m.color||"#00d4aa"), source:String(m.source||"custom"),
+    notes:typeof m.notes==="string"?m.notes:"",
+    rules:m.rules && typeof m.rules==="object"?{...m.rules}:{}
   })) : d.models;
   if(!models.length) models = cloneModels(DEFAULT_MODELS);
+  models = applyStandardCustomModels(models);
   const rawActive = Array.isArray(raw.activeModelIds) ? raw.activeModelIds.map(String) : d.activeModelIds;
   const activeModelIds = rawActive.filter(id=>models.some(m=>m.id===id));
   models.filter(isCustomModel).forEach(m=>{ if(!activeModelIds.includes(m.id)) activeModelIds.push(m.id); });
   if(!activeModelIds.length) activeModelIds.push(models[0].id);
   const availableModelIds = new Set(activeModelIds);
   const cModelId = availableModelIds.has(raw.cModelId)?raw.cModelId:activeModelIds[0];
-  const steps = Array.isArray(raw.steps) && raw.steps.length ? raw.steps.map(s=>{
-    const inputK = Math.max(1,parseInt(s.inputK)||1);
-    return {id:s.id||uid("s"), name:String(s.name||"Step"), inputK,
-      cacheK:Math.min(inputK,Math.max(0,parseInt(s.cacheK)||0)),
-      outputK:Math.max(1,parseInt(s.outputK)||1),
-      modelId:availableModelIds.has(s.modelId)?s.modelId:cModelId};
-  }) : d.steps;
-  const revInK = Math.max(1,parseInt(raw.revInK)||d.revInK);
+  const steps = Array.isArray(raw.steps) && raw.steps.length
+    ? raw.steps.map(s => {
+        const norm = normalizeStep(s, cModelId);
+        return {
+          ...norm,
+          id: s.id || norm.id || uid("s"),
+          name: String(s.name || norm.name),
+          modelId: availableModelIds.has(s.modelId) ? s.modelId : cModelId,
+        };
+      })
+    : d.steps;
+  const rev = normalizeReviewTokens(raw, d);
   const planBudgets = Object.fromEntries(PLANS.map(p=>[
     p.id,
     Math.max(0,Number(raw.planBudgets?.[p.id] ?? p.defaultBudget)||0)
   ]));
   const reviewEvery = clampReviewInterval(raw.reviewEvery, d.reviewEvery);
+  const usagePool = raw.usagePool === "auto" ? "auto" : "api";
+  const maxMode = !!raw.maxMode;
+  const sessionFastMode = !!raw.sessionFastMode;
+  const fastModeByModelId =
+    raw.fastModeByModelId && typeof raw.fastModeByModelId === "object"
+      ? Object.fromEntries(
+          Object.entries(raw.fastModeByModelId).map(([k, v]) => [String(k), !!v])
+        )
+      : {};
   return {
     steps, models, activeModelIds,
     sessions:Math.min(50,Math.max(1,parseInt(raw.sessions)||d.sessions)),
     cModelId,
     rModelId:availableModelIds.has(raw.rModelId)?raw.rModelId:activeModelIds[0],
-    revInK,
-    revCacheK:Math.min(revInK,Math.max(0,parseInt(raw.revCacheK)||d.revCacheK)),
-    revOutK:Math.max(1,parseInt(raw.revOutK)||d.revOutK),
+    revInK: rev.revInK,
+    revCacheReadK: rev.revCacheReadK,
+    revCacheWriteK: rev.revCacheWriteK,
+    revOutK: rev.revOutK,
     reviewEvery,
+    usagePool,
+    maxMode,
+    sessionFastMode,
+    fastModeByModelId,
     currency:RATES[raw.currency]?raw.currency:d.currency,
     planBudgets
   };
@@ -270,6 +338,19 @@ function loadConfig() {
     return readStoredConfig(USER_DEFAULT_STORAGE_KEY) || readStoredConfig(STORAGE_KEY) || defaultConfig();
   } catch(e) { return defaultConfig(); }
 }
+/** Keep only the built-in standard custom model(s); drop other customs from saved config. */
+function applyStandardCustomModels(models) {
+  const nonCustom = models.filter(m=>!isCustomModel(m));
+  const saved = models.find(m=>STANDARD_CUSTOM_MODEL_IDS.has(m.id));
+  const standard = saved
+    ? {...STANDARD_CUSTOM_MODEL,...saved,id:STANDARD_CUSTOM_MODEL.id,source:"custom",
+        rules:{...STANDARD_CUSTOM_MODEL.rules,...(saved.rules||{})}}
+    : {...STANDARD_CUSTOM_MODEL};
+  return [...nonCustom, standard];
+}
+function isStandardCustomModel(model) {
+  return isCustomModel(model) && STANDARD_CUSTOM_MODEL_IDS.has(model?.id);
+}
 function parseCatalogModels(payload) {
   const list = Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : [];
   const byKey = new Map();
@@ -279,7 +360,7 @@ function parseCatalogModels(payload) {
     const inputP = Number(model.inputP)||0;
     const outputP = Number(model.outputP)||0;
     if(!inputP || !outputP) return;
-    byKey.set(modelKey(name), {
+    const entry = {
       id:modelIdFromName(name),
       name,
       inputP,
@@ -288,19 +369,26 @@ function parseCatalogModels(payload) {
       outputP,
       color:COLOR_PALETTE[index%COLOR_PALETTE.length],
       source:"cursor"
-    });
+    };
+    if(typeof model.notes==="string" && model.notes) entry.notes = model.notes;
+    if(model.rules && typeof model.rules==="object") entry.rules = {...model.rules};
+    byKey.set(modelKey(name), entry);
   });
   return [...byKey.values()];
 }
 function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
-  if(!cursorModels.length) return currentModels;
   const currentByKey = new Map(currentModels.map(m=>[modelKey(m.name),m]));
-  const mergedCursor = cursorModels.map((m,i)=>{
+  const mergedCursor = cursorModels.length ? cursorModels.map((m,i)=>{
     const existing = currentByKey.get(modelKey(m.name));
-    return {...m,id:existing && !isPlaceholderModel(existing) ? existing.id : m.id,color:existing?.color||COLOR_PALETTE[i%COLOR_PALETTE.length]};
-  });
-  const custom = currentModels.filter(isCustomModel);
-  const next = [...mergedCursor,...custom];
+    return {
+      ...m,
+      id:existing && !isPlaceholderModel(existing) ? existing.id : m.id,
+      color:existing?.color||COLOR_PALETTE[i%COLOR_PALETTE.length],
+      notes:m.notes||existing?.notes||"",
+      rules:m.rules||existing?.rules||{},
+    };
+  }) : currentModels.filter(m=>isCursorModel(m));
+  const next = applyStandardCustomModels(mergedCursor);
   return next.map((m,i)=>({...m,color:m.color||COLOR_PALETTE[i%COLOR_PALETTE.length]}));
 }
 
@@ -339,6 +427,19 @@ function TokSlider({label, value, onChange, color, max, min=1}) {
         aria-label={`${label} Slider`}
         onChange={e=>onChange(Number(e.target.value))}
         style={{accentColor:color,color}}/>
+    </div>
+  );
+}
+
+function ModelRuleBadges({rules}) {
+  const badges = ruleBadges(rules);
+  if(!badges.length) return null;
+  return (
+    <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>
+      {badges.map(b=>(
+        <span key={b.id} style={{fontFamily:C.mono,fontSize:9,color:C.amber,background:`${C.amber}18`,
+          border:`1px solid ${C.amber}44`,borderRadius:4,padding:"2px 6px"}}>{b.label}</span>
+      ))}
     </div>
   );
 }
@@ -394,8 +495,15 @@ function App() {
   const [cModelId, setCModelId] = useState(initial.cModelId);
   const [rModelId, setRModelId] = useState(initial.rModelId);
   const [revInK,   setRevInK]   = useState(initial.revInK);
-  const [revCacheK,setRevCacheK]= useState(initial.revCacheK);
+  const [revCacheReadK,setRevCacheReadK]= useState(initial.revCacheReadK);
+  const [revCacheWriteK,setRevCacheWriteK]= useState(initial.revCacheWriteK);
   const [revOutK,  setRevOutK]  = useState(initial.revOutK);
+  const [usagePool,setUsagePool]= useState(initial.usagePool);
+  const [maxMode,setMaxMode]= useState(initial.maxMode);
+  const [sessionFastMode,setSessionFastMode]= useState(initial.sessionFastMode);
+  const [fastModeByModelId,setFastModeByModelId]= useState(initial.fastModeByModelId);
+  const [catalogAutoPool,setCatalogAutoPool]= useState(DEFAULT_AUTO_POOL);
+  const [catalogUpdatedAt,setCatalogUpdatedAt]= useState("");
   const [reviewEvery,setReviewEvery]=useState(initial.reviewEvery);
   const [currency, setCurrency] = useState(initial.currency);
   const [planBudgets, setPlanBudgets] = useState(initial.planBudgets);
@@ -409,10 +517,12 @@ function App() {
   const importRef = useRef(null);
 
   const sesInK  = steps.reduce((s,x)=>s+x.inputK, 0);
-  const sesCacheK = steps.reduce((s,x)=>s+Math.min(x.cacheK||0,x.inputK), 0);
+  const sesCacheReadK = steps.reduce((s,x)=>s+(x.cacheReadK||0), 0);
+  const sesCacheWriteK = steps.reduce((s,x)=>s+(x.cacheWriteK||0), 0);
   const sesOutK = steps.reduce((s,x)=>s+x.outputK, 0);
   const totInK  = sessions * sesInK;
-  const totCacheK = sessions * sesCacheK;
+  const totCacheReadK = sessions * sesCacheReadK;
+  const totCacheWriteK = sessions * sesCacheWriteK;
   const totOutK = sessions * sesOutK;
   const customModels = models.filter(isCustomModel);
   const activeModels = models.filter(m=>!isPlaceholderModel(m) && (activeModelIds.includes(m.id) || isCustomModel(m)));
@@ -428,23 +538,26 @@ function App() {
   const sessionModelLabel = uniqueStepModelNames.length===1 ? uniqueStepModelNames[0] : "mixed models";
   const reviewEnabled = reviewEvery > 0;
   const reviewCount = reviewEnabled ? Math.ceil(sessions / reviewEvery) : 0;
-  const sesCost = steps.reduce((sum,step)=>sum+calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK),0);
+  const sesCost = steps.reduce((sum,step)=>sum+stepCost(step,modelForStep(step),usagePool,catalogAutoPool,maxMode,sessionFastMode,fastModeByModelId),0);
   const totCost = sessions * sesCost;
-  const oneRevCost = calcCost(rModel, revInK, Math.min(revCacheK,revInK), revOutK);
+  const oneRevCost = pricingResult(rModel,revInK,revCacheReadK,revCacheWriteK,revOutK,usagePool,catalogAutoPool,maxMode,sessionFastMode,fastModeByModelId).cost;
   const revCost = reviewCount * oneRevCost;
   const grand   = totCost + revCost;
   const totalSessions = sessions + reviewCount;
   const aggregateInK = totInK + (reviewCount * revInK);
-  const aggregateCacheK = totCacheK + (reviewCount * revCacheK);
+  const aggregateCacheReadK = totCacheReadK + (reviewCount * revCacheReadK);
+  const aggregateCacheWriteK = totCacheWriteK + (reviewCount * revCacheWriteK);
   const aggregateOutK = totOutK + (reviewCount * revOutK);
+  const poolLabel = usagePool === "auto" ? "Auto + Composer" : "API (per model)";
   const pct     = n => grand ? Math.min(n/grand*100,100).toFixed(0)+"%" : "0%";
   const money   = n => fmtMoney(n, currency);
   const persistedActiveModelIds = [...new Set([...activeModelIds,...customModels.map(m=>m.id)])];
-  const cfg = {steps,models,activeModelIds:persistedActiveModelIds,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency,planBudgets};
+  const cfg = {steps,models,activeModelIds:persistedActiveModelIds,sessions,cModelId,rModelId,revInK,revCacheReadK,revCacheWriteK,revOutK,reviewEvery,usagePool,maxMode,sessionFastMode,fastModeByModelId,currency,planBudgets};
+  const cursorCatalogModels = models.filter(isCursorModel);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  }, [steps,models,persistedActiveModelIds,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency,planBudgets]);
+  }, [steps,models,persistedActiveModelIds,sessions,cModelId,rModelId,revInK,revCacheReadK,revCacheWriteK,revOutK,reviewEvery,usagePool,maxMode,sessionFastMode,fastModeByModelId,currency,planBudgets]);
 
   useEffect(() => {
     let ignore = false;
@@ -479,9 +592,13 @@ function App() {
           }));
           return next;
         });
+        if(payload?.autoPool) setCatalogAutoPool(payload.autoPool);
         const updatedAt = payload && typeof payload.updatedAt === "string" ? new Date(payload.updatedAt) : null;
-        const stamp = updatedAt && !isNaN(updatedAt) ? ` (updated ${updatedAt.toISOString().slice(0,10)})` : "";
-        setPricingStatus(`Loaded ${cursorModels.length} Cursor models from bundled catalog${stamp}.`);
+        if(updatedAt && !isNaN(updatedAt)) setCatalogUpdatedAt(updatedAt.toISOString().slice(0,10));
+        const stamp = updatedAt && !isNaN(updatedAt) ? ` (catalog ${updatedAt.toISOString().slice(0,10)})` : "";
+        setPricingStatus(
+          `Loaded ${cursorModels.length} API models + standard custom (Gemini 3.5 Flash)${stamp}. Pool: ${poolLabel}.`
+        );
       })
       .catch(err => {
         setPricingStatus("Using stored prices; Cursor model catalog could not be loaded.");
@@ -490,13 +607,8 @@ function App() {
     return () => { ignore = true; };
   }, []);
 
-  const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>{
-    if(s.id!==id) return s;
-    if(f==="inputK") return {...s,inputK:v,cacheK:Math.min(s.cacheK||0,v)};
-    const value = f==="cacheK" ? Math.min(v,s.inputK) : v;
-    return {...s,[f]:value};
-  }));
-  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"New Step",inputK:30,cacheK:5,outputK:5,modelId:cModelId}]);
+  const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>s.id!==id?s:{...s,[f]:v}));
+  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"New Step",inputK:25,cacheReadK:5,cacheWriteK:0,outputK:5,modelId:cModelId}]);
   const delStep  = id => { if(steps.length>1) setSteps(ss=>ss.filter(s=>s.id!==id)); };
   const dupStep  = step => setSteps(ss=>{
     const next = [];
@@ -538,6 +650,7 @@ function App() {
   };
   const updModel = (id,f,v) => setModels(ms=>ms.map(m=>m.id===id?{...m,[f]:v}:m));
   const delModel = id => {
+    if(STANDARD_CUSTOM_MODEL_IDS.has(id)) return;
     if(models.length<=1) return;
     const next = models.filter(m=>m.id!==id);
     setModels(next);
@@ -560,7 +673,9 @@ function App() {
   };
   const applyConfig = d => {
     setSteps(d.steps); setModels(d.models); setSessions(d.sessions); setCModelId(d.cModelId); setRModelId(d.rModelId);
-    setRevInK(d.revInK); setRevCacheK(d.revCacheK); setRevOutK(d.revOutK); setReviewEvery(d.reviewEvery); setCurrency(d.currency);
+    setRevInK(d.revInK); setRevCacheReadK(d.revCacheReadK); setRevCacheWriteK(d.revCacheWriteK); setRevOutK(d.revOutK);
+    setReviewEvery(d.reviewEvery); setUsagePool(d.usagePool); setMaxMode(d.maxMode);
+    setSessionFastMode(d.sessionFastMode); setFastModeByModelId(d.fastModeByModelId||{}); setCurrency(d.currency);
     setActiveModelIds(d.activeModelIds); setPlanBudgets(d.planBudgets);
     setPreviousSteps(null);
   };
@@ -662,14 +777,15 @@ function App() {
       {/* ── Content ── */}
       <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
         <div style={{background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,padding:10,marginBottom:12,
-          fontFamily:C.mono,fontSize:11,color:C.muted}}>
-          Prices: {PRICING_UPDATED}. {pricingStatus}
+          fontFamily:C.mono,fontSize:11,color:C.muted,lineHeight:1.5}}>
+          <div>{pricingStatus}{catalogUpdatedAt ? ` · Catalog ${catalogUpdatedAt}` : ""} · Billing: <span style={{color:C.teal}}>{poolLabel}</span></div>
+          <div style={{marginTop:6,color:C.dim,fontSize:10}}>{ESTIMATION_NOTICE}</div>
         </div>
 
         {/* STEPS */}
         {tab==="steps" && (
           <Panel title="Workflow Steps"
-            badge={`${fmtTok(sesInK)} in · ${fmtTok(sesCacheK)} cache · ${fmtTok(sesOutK)} out · ${money(sesCost)}/Session`}>
+            badge={`${fmtTok(sesInK)} in · ${fmtTok(sesCacheReadK)} cr · ${fmtTok(sesCacheWriteK)} cw · ${fmtTok(sesOutK)} out · ${money(sesCost)}/Session`}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:10,marginBottom:12}}>
               {PRESETS.map(p=>(
                 <ActionButton key={p.name} onClick={()=>applyPreset(p)} icon="↯">
@@ -724,15 +840,34 @@ function App() {
                   <Label>Model for this step</Label>
                   <ModelSelect label={`Model for step ${i+1}`} models={getModelsForSelectValue(modelForStep(step).id)} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
                 </div>
-                <TokSlider label="Input tokens" value={step.inputK} color={C.teal} max={500}
+                <TokSlider label="Input tokens (non-cache)" value={step.inputK} color={C.teal} max={500} min={0}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
-                <TokSlider label="Cache read tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
-                  onChange={v=>updStep(step.id,"cacheK",v)}/>
+                <TokSlider label="Cache read tokens" value={step.cacheReadK||0} color={C.muted} max={500} min={0}
+                  onChange={v=>updStep(step.id,"cacheReadK",v)}/>
+                <TokSlider label="Cache write tokens" value={step.cacheWriteK||0} color={C.blue} max={500} min={0}
+                  onChange={v=>updStep(step.id,"cacheWriteK",v)}/>
                 <TokSlider label="Output tokens" value={step.outputK} color={C.amber} max={100}
                   onChange={v=>updStep(step.id,"outputK",v)}/>
-                <div style={{fontFamily:C.mono,fontSize:11,color:C.blue,marginTop:2}}>
-                  ⟹ {money(calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK))} with {modelForStep(step).name}
-                </div>
+                {(() => {
+                  const m = modelForStep(step);
+                  const meta = stepPricingMeta(step, m, usagePool, catalogAutoPool, maxMode, sessionFastMode, fastModeByModelId);
+                  const fastOn = resolveFastMode(m, sessionFastMode, fastModeByModelId);
+                  return (
+                    <div style={{fontFamily:C.mono,fontSize:11,color:C.blue,marginTop:2}}>
+                      ⟹ {money(meta.cost)} with {m.name}
+                      {meta.multiplier > 1 && (
+                        <span style={{color:C.amber,marginLeft:6}}>×{meta.multiplier} input (&gt;{m.rules?.longContextThresholdK||200}k)</span>
+                      )}
+                      {fastOn && meta.fastMultiplier > 1 && (
+                        <span style={{color:C.purple,marginLeft:6}}>Fast ×{meta.fastMultiplier}</span>
+                      )}
+                      {fastOn && m.rules?.isFastModeVariant && (
+                        <span style={{color:C.purple,marginLeft:6}}>Fast (catalog)</span>
+                      )}
+                      <ModelRuleBadges rules={m.rules}/>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             <button onClick={addStep} style={{width:"100%",background:"transparent",
@@ -756,8 +891,31 @@ function App() {
             </div>
             <Label>Default model for new steps</Label>
             <ModelSelect label="Default model for new steps" models={getModelsForSelectValue(cModelId)} value={cModelId} onChange={setCModelId}/>
+            <div style={{marginTop:14}}>
+              <Label>Billing pool</Label>
+              <ModelSelect label="Billing pool" models={USAGE_POOLS} value={usagePool} onChange={setUsagePool}/>
+              <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
+                {usagePool==="auto"
+                  ? `Auto + Composer: $${catalogAutoPool.inputP}/M input, $${catalogAutoPool.cacheWriteP}/M cache write, $${catalogAutoPool.cacheP}/M cache read, $${catalogAutoPool.outputP}/M output`
+                  : "API pool uses each model's list price from the catalog."}
+              </div>
+            </div>
+            <label style={{display:"flex",alignItems:"center",gap:10,marginTop:14,cursor:"pointer"}}>
+              <input type="checkbox" checked={maxMode} onChange={e=>setMaxMode(e.target.checked)}
+                style={{width:18,height:18,accentColor:C.teal}}/>
+              <span style={{fontFamily:C.mono,fontSize:11,color:C.text}}>
+                Max Mode (waives 2× long-context surcharge on models that allow it in docs)
+              </span>
+            </label>
+            <label style={{display:"flex",alignItems:"center",gap:10,marginTop:10,cursor:"pointer"}}>
+              <input type="checkbox" checked={sessionFastMode} onChange={e=>setSessionFastMode(e.target.checked)}
+                style={{width:18,height:18,accentColor:C.purple}}/>
+              <span style={{fontFamily:C.mono,fontSize:11,color:C.text}}>
+                Fast mode (session default for models with optional fast pricing in docs)
+              </span>
+            </label>
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:cModel.color}}>
-              Total cost: {money(totCost)}
+              Total cost: {money(totCost)} ({poolLabel})
             </div>
           </Panel>
           <Panel title={reviewEnabled ? `Review Session (${reviewCount}×, every ${reviewEvery} sessions)` : "Review Session (disabled)"}>
@@ -765,7 +923,7 @@ function App() {
               <Label>Review model</Label>
               <ModelSelect label="Review model" models={getModelsForSelectValue(rModelId)} value={rModelId} onChange={setRModelId}/>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:12}}>
               <div>
                 <Label>Interval</Label>
                 <input aria-label="Review interval" type="number" value={reviewEvery} min={0} max={100} step={1}
@@ -775,23 +933,31 @@ function App() {
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
-                <Label>Input tokens (k)</Label>
-                <input aria-label="Review input tokens" type="number" value={revInK} min={1} max={2000} step={1}
-                  onChange={e=>setRevInK(Math.max(1,parseInt(e.target.value)||1))}
+                <Label>Input (k)</Label>
+                <input aria-label="Review input tokens" type="number" value={revInK} min={0} max={2000} step={1}
+                  onChange={e=>setRevInK(Math.max(0,parseInt(e.target.value)||0))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.teal,fontFamily:C.mono,fontSize:15,
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
                 <Label>Cache read (k)</Label>
-                <input aria-label="Review cache read tokens" type="number" value={revCacheK} min={0} max={revInK} step={1}
-                  onChange={e=>setRevCacheK(Math.min(revInK,Math.max(0,parseInt(e.target.value)||0)))}
+                <input aria-label="Review cache read tokens" type="number" value={revCacheReadK} min={0} max={2000} step={1}
+                  onChange={e=>setRevCacheReadK(Math.max(0,parseInt(e.target.value)||0))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.muted,fontFamily:C.mono,fontSize:15,
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
-                <Label>Output tokens (k)</Label>
+                <Label>Cache write (k)</Label>
+                <input aria-label="Review cache write tokens" type="number" value={revCacheWriteK} min={0} max={2000} step={1}
+                  onChange={e=>setRevCacheWriteK(Math.max(0,parseInt(e.target.value)||0))}
+                  style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
+                    borderRadius:4,color:C.blue,fontFamily:C.mono,fontSize:15,
+                    padding:"9px 10px",textAlign:"right"}}/>
+              </div>
+              <div>
+                <Label>Output (k)</Label>
                 <input aria-label="Review output tokens" type="number" value={revOutK} min={1} max={500} step={1}
                   onChange={e=>setRevOutK(Math.max(1,parseInt(e.target.value)||1))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
@@ -803,7 +969,7 @@ function App() {
               Review cost: {reviewEnabled ? `${reviewCount} × ${money(oneRevCost)} = ${money(revCost)}` : "disabled"}
             </div>
             <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
-              Set interval to 0 to skip review sessions. Cache read tokens are subtracted from input; cache write prices, when set, are added to those cached tokens.
+              Set interval to 0 to skip review sessions. Enter input, cache read, and cache write separately — matching the Cursor usage dashboard.
             </div>
           </Panel>
           <Panel title="Monthly Budgets (editable)">
@@ -876,7 +1042,7 @@ function App() {
               </div>
               {(() => {
                 const allPreview = models.filter(m=>!isPlaceholderModel(m));
-                const maxC = Math.max(0,...allPreview.map(x=>calcCost(x,totInK,totCacheK,totOutK)));
+                const maxC = Math.max(0,...allPreview.map(x=>pricingResult(x,totInK,totCacheReadK,totCacheWriteK,totOutK,usagePool,catalogAutoPool,maxMode,sessionFastMode,fastModeByModelId).cost));
                 const VISIBLE_ROWS = 12;
                 const rowHeight = 36;
                 const scrolls = allPreview.length > VISIBLE_ROWS;
@@ -885,7 +1051,7 @@ function App() {
                     overflowY:scrolls ? "auto" : "visible",
                     paddingRight:scrolls ? 6 : 0}}>
                     {allPreview.map(m=>{
-                      const total = calcCost(m,totInK,totCacheK,totOutK);
+                      const total = pricingResult(m,totInK,totCacheReadK,totCacheWriteK,totOutK,usagePool,catalogAutoPool,maxMode,sessionFastMode,fastModeByModelId).cost;
                       const isActive = activeModelIds.includes(m.id) || isCustomModel(m);
                       const locked = isCustomModel(m);
                       const handleToggle = () => { if(!locked) setModelAvailability(m,!isActive); };
@@ -907,7 +1073,7 @@ function App() {
                             {isActive?"★":"☆"}
                           </span>
                           <span style={{fontFamily:C.mono,fontSize:13,color:m.color,
-                            flex:"0 0 200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            flex:"0 0 180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={m.notes||m.name}>
                             {m.name}
                           </span>
                           <div style={{flex:"1 1 auto",minWidth:60,maxWidth:180,
@@ -924,21 +1090,63 @@ function App() {
                 );
               })()}
             </div>
+            {cursorCatalogModels.length > 0 && (
+              <div style={{marginBottom:16}}>
+                <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,margin:"0 0 8px"}}>
+                  CURSOR CATALOG — DOCS NOTES ({cursorCatalogModels.length})
+                </div>
+                <div style={{maxHeight:220,overflowY:"auto",paddingRight:4}}>
+                  {cursorCatalogModels.map(m=>{
+                    const fastEligible = m.rules?.fastModeAvailable && !m.rules?.isFastModeVariant;
+                    const fastOn = resolveFastMode(m, sessionFastMode, fastModeByModelId);
+                    return (
+                    <div key={m.id} style={{background:C.s3,borderRadius:6,padding:"8px 10px",
+                      border:`1px solid ${C.border}`,marginBottom:6}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                        <div style={{fontWeight:700,fontSize:12,color:m.color,flex:1}}>{m.name}</div>
+                        {m.rules?.isFastModeVariant ? (
+                          <span style={{fontFamily:C.mono,fontSize:9,color:C.purple,flexShrink:0}}>Fast catalog</span>
+                        ) : fastEligible ? (
+                          <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",flexShrink:0}}>
+                            <input type="checkbox" checked={fastOn}
+                              onChange={()=>setFastModeByModelId(prev=>toggleModelFastMode(m.id, models, sessionFastMode, prev))}
+                              style={{width:14,height:14,accentColor:C.purple}}/>
+                            <span style={{fontFamily:C.mono,fontSize:9,color:C.purple}}>Fast</span>
+                          </label>
+                        ) : null}
+                      </div>
+                      <ModelRuleBadges rules={m.rules}/>
+                      {m.notes ? (
+                        <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginTop:6,lineHeight:1.45}}>{m.notes}</div>
+                      ) : (
+                        <div style={{fontFamily:C.mono,fontSize:10,color:C.dim,marginTop:4}}>No extra pricing notes in docs.</div>
+                      )}
+                    </div>
+                  );})}
+                </div>
+              </div>
+            )}
             <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,margin:"16px 0 8px"}}>
               CUSTOM MODELS
             </div>
             {customModels.map(m=>(
               <div key={m.id} style={{background:C.s3,borderRadius:8,padding:12,
-                border:`1px solid ${C.border}`,marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                border:`1px solid ${m.rules?.notInCursorDocs?C.teal+"44":C.border}`,marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
                   <span style={{fontFamily:C.mono,fontSize:10,color:C.teal,flexShrink:0}}>Always active</span>
+                  {isStandardCustomModel(m) && (
+                    <span style={{fontFamily:C.mono,fontSize:9,color:C.teal}}>built-in (not in Cursor docs yet)</span>
+                  )}
+                  <ModelRuleBadges rules={m.rules}/>
                   <input aria-label={`Color for ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
+                    disabled={isStandardCustomModel(m)}
                     style={{width:28,height:28,border:"none",borderRadius:4,
                       cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
-                  <input aria-label="Model name" value={m.name} onChange={e=>updModel(m.id,"name",e.target.value)}
+                  <input aria-label="Model name" value={m.name} readOnly={isStandardCustomModel(m)}
+                    onChange={e=>updModel(m.id,"name",e.target.value)}
                     style={{flex:1,background:"transparent",border:"none",color:m.color,
                       fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
-                  <button aria-label={`Delete ${m.name}`} disabled={models.length<=1} onClick={()=>delModel(m.id)}
+                  <button aria-label={`Delete ${m.name}`} disabled={models.length<=1||isStandardCustomModel(m)} onClick={()=>delModel(m.id)}
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
@@ -1009,7 +1217,8 @@ function App() {
         {tab==="results" && (<>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
             <StatCard label="Input / Session"  value={fmtTok(sesInK)}  color={C.teal}  sub={`×${sessions} = ${fmtTok(totInK)}`}/>
-            <StatCard label="Cache / Session"  value={fmtTok(sesCacheK)} color={C.muted} sub={`×${sessions} = ${fmtTok(totCacheK)}`}/>
+            <StatCard label="Cache read / Session"  value={fmtTok(sesCacheReadK)} color={C.muted} sub={`×${sessions} = ${fmtTok(totCacheReadK)}`}/>
+            <StatCard label="Cache write / Session" value={fmtTok(sesCacheWriteK)} color={C.blue} sub={`×${sessions} = ${fmtTok(totCacheWriteK)}`}/>
             <StatCard label="Output / Session" value={fmtTok(sesOutK)} color={C.amber} sub={`×${sessions} = ${fmtTok(totOutK)}`}/>
             <StatCard label={reviewEnabled ? `${reviewCount}× Review` : "Review disabled"} value={money(revCost)} color={rModel.color} sub={reviewEnabled ? rModel.name : "Interval set to 0"}/>
           </div>
@@ -1023,15 +1232,15 @@ function App() {
               {money(grand)}
             </div>
             <div style={{fontFamily:C.mono,fontSize:11,color:C.muted,marginTop:6}}>
-              {fmtTok(aggregateInK)} Input · {fmtTok(aggregateCacheK)} Cache · {fmtTok(aggregateOutK)} Output
+              {fmtTok(aggregateInK)} Input · {fmtTok(aggregateCacheReadK)} Cache read · {fmtTok(aggregateCacheWriteK)} Cache write · {fmtTok(aggregateOutK)} Output
             </div>
           </div>
 
           <Panel title="Breakdown">
             {[
-              {label:`1 Session (${sessionModelLabel})`,inK:sesInK,cacheK:sesCacheK,outK:sesOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:sesCost},
-              {label:`${sessions}× Sessions`,inK:totInK,cacheK:totCacheK,outK:totOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:totCost,bold:true},
-              reviewEnabled ? {label:`${reviewCount}× Review`,inK:reviewCount*revInK,cacheK:reviewCount*revCacheK,outK:reviewCount*revOutK,m:rModel,cost:revCost,bold:true} : null,
+              {label:`1 Session (${sessionModelLabel})`,inK:sesInK,cacheReadK:sesCacheReadK,cacheWriteK:sesCacheWriteK,outK:sesOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:sesCost},
+              {label:`${sessions}× Sessions`,inK:totInK,cacheReadK:totCacheReadK,cacheWriteK:totCacheWriteK,outK:totOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:totCost,bold:true},
+              reviewEnabled ? {label:`${reviewCount}× Review`,inK:reviewCount*revInK,cacheReadK:reviewCount*revCacheReadK,cacheWriteK:reviewCount*revCacheWriteK,outK:reviewCount*revOutK,m:rModel,cost:revCost,bold:true} : null,
             ].filter(Boolean).map((r,i)=>(
               <div key={i} style={{padding:"11px 0",borderBottom:`1px solid ${C.border}`,
                 display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
@@ -1040,7 +1249,8 @@ function App() {
                 </div>
                 <div style={{display:"flex",gap:10,fontFamily:C.mono,fontSize:12}}>
                   <span style={{color:C.teal}}>{fmtTok(r.inK)}</span>
-                  <span style={{color:C.muted}}>{fmtTok(r.cacheK)}</span>
+                  <span style={{color:C.muted}}>{fmtTok(r.cacheReadK)}</span>
+                  <span style={{color:C.blue}}>{fmtTok(r.cacheWriteK)}</span>
                   <span style={{color:C.amber}}>{fmtTok(r.outK)}</span>
                   <span style={{color:C.text,fontWeight:700}}>{money(r.cost)}</span>
                   <span style={{color:C.muted,minWidth:36,textAlign:"right"}}>{pct(r.cost)}</span>
@@ -1063,10 +1273,11 @@ function App() {
                 </div>
                 <div style={{display:"flex",gap:8,fontFamily:C.mono,fontSize:12}}>
                   <span style={{color:C.teal}}>{fmtTok(s.inputK)}</span>
-                  <span style={{color:C.muted}}>{fmtTok(Math.min(s.cacheK||0,s.inputK))}</span>
+                  <span style={{color:C.muted}}>{fmtTok(s.cacheReadK||0)}</span>
+                  <span style={{color:C.blue}}>{fmtTok(s.cacheWriteK||0)}</span>
                   <span style={{color:C.amber}}>{fmtTok(s.outputK)}</span>
                   <span style={{color:modelForStep(s).color}}>{modelForStep(s).name}</span>
-                  <span style={{color:C.blue}}>{money(calcCost(modelForStep(s),s.inputK,Math.min(s.cacheK||0,s.inputK),s.outputK))}</span>
+                  <span style={{color:C.blue}}>{money(stepCost(s,modelForStep(s),usagePool,catalogAutoPool,maxMode,sessionFastMode,fastModeByModelId))}</span>
                 </div>
               </div>
             ))}

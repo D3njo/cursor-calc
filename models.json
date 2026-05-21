@@ -1,17 +1,427 @@
 {
-  "updatedAt": "2026-05-21T00:00:00.000Z",
-  "source": "https://cursor.com/docs/models-and-pricing",
-  "note": "Seeded from the Cursor pricing page. The 'Update Cursor models' GitHub Action refreshes this file daily — do not hand-edit unless you also disable the workflow. Add private/custom models via the in-app Model Editor, not here.",
+  "updatedAt": "2026-05-21T17:03:47.766Z",
+  "source": "https://cursor.com/docs/models-and-pricing.md",
   "models": [
-    { "name": "Claude 4 Sonnet",            "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
-    { "name": "Claude 4 Sonnet 1M",         "inputP": 6,  "cacheP": 0.6, "cacheWriteP": 7.5,  "outputP": 22.5 },
-    { "name": "Claude 4.5 Haiku",           "inputP": 1,  "cacheP": 0.1, "cacheWriteP": 1.25, "outputP": 5 },
-    { "name": "Claude 4.5 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
-    { "name": "Claude 4.5 Sonnet",          "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
-    { "name": "Claude 4.6 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
-    { "name": "Claude 4.6 Opus (Fast mode)","inputP": 30, "cacheP": 3,   "cacheWriteP": 37.5, "outputP": 150 },
-    { "name": "Claude 4.6 Sonnet",          "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
-    { "name": "Claude 4.7 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
-    { "name": "Claude Opus 4.7 (fast mode)","inputP": 30, "cacheP": 3,   "cacheWriteP": 37.5, "outputP": 150 }
-  ]
+    {
+      "name": "Claude 4 Sonnet",
+      "inputP": 3,
+      "cacheP": 0.3,
+      "cacheWriteP": 3.75,
+      "outputP": 15,
+      "notes": "Hidden by default; Thinking variant counts as 2 requests in legacy pricing",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Claude 4 Sonnet 1M",
+      "inputP": 6,
+      "cacheP": 0.6,
+      "cacheWriteP": 7.5,
+      "outputP": 22.5,
+      "notes": "Hidden by default; Thinking variant counts as 2 requests in legacy pricing; This model can be very expensive due to the large context window; The cost is 2x when the input exceeds 200k tokens",
+      "rules": {
+        "hidden": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200
+      }
+    },
+    {
+      "name": "Claude 4.5 Haiku",
+      "inputP": 1,
+      "cacheP": 0.1,
+      "cacheWriteP": 1.25,
+      "outputP": 5,
+      "notes": "Hidden by default; Bedrock/Vertex: regional endpoints +10% surcharge; Cache: writes 1.25x, reads 0.1x",
+      "rules": {
+        "hidden": true,
+        "regionalSurchargePct": 10
+      }
+    },
+    {
+      "name": "Claude 4.5 Opus",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 25,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true
+      }
+    },
+    {
+      "name": "Claude 4.5 Sonnet",
+      "inputP": 3,
+      "cacheP": 0.3,
+      "cacheWriteP": 3.75,
+      "outputP": 15,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude 4.6 Opus",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 25,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude 4.6 Opus (Fast mode)",
+      "inputP": 30,
+      "cacheP": 3,
+      "cacheWriteP": 37.5,
+      "outputP": 150,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Limited research preview; Up to 1M tokens in Max Mode at the same per-token rates as shorter context",
+      "rules": {
+        "isFastModeVariant": true
+      }
+    },
+    {
+      "name": "Claude 4.6 Sonnet",
+      "inputP": 3,
+      "cacheP": 0.3,
+      "cacheWriteP": 3.75,
+      "outputP": 15,
+      "notes": "Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude 4.7 Opus",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 25,
+      "notes": "Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude Opus 4.7 (fast mode)",
+      "inputP": 30,
+      "cacheP": 3,
+      "cacheWriteP": 37.5,
+      "outputP": 150,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Limited research preview; Up to 1M tokens in Max Mode at the same per-token rates as shorter context",
+      "rules": {
+        "isFastModeVariant": true
+      }
+    },
+    {
+      "name": "Composer 1",
+      "inputP": 1.25,
+      "cacheP": 0.125,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Composer 1.5",
+      "inputP": 3.5,
+      "cacheP": 0.35,
+      "cacheWriteP": 0,
+      "outputP": 17.5,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Composer 2",
+      "inputP": 0.5,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Composer 2.5",
+      "inputP": 0.5,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "-"
+    },
+    {
+      "name": "Gemini 2.5 Flash",
+      "inputP": 0.3,
+      "cacheP": 0.03,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3 Flash",
+      "inputP": 0.5,
+      "cacheP": 0.05,
+      "cacheWriteP": 0,
+      "outputP": 3,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3 Pro",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3 Pro Image Preview",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Hidden by default; Native image generation model optimized for speed, flexibility, and contextual understanding; Text input and output priced the same as Gemini 3 Pro; Image output: $120/1M tokens (\\~$0.134 per 1K/2K image, \\~$0.24 per 4K image); Preview models may change before becoming stable and have more restrictive rate limits",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3.1 Pro",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "-"
+    },
+    {
+      "name": "GPT-5",
+      "inputP": 1.25,
+      "cacheP": 0.125,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Hidden by default; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5-high",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5 Fast",
+      "inputP": 2.5,
+      "cacheP": 0.25,
+      "cacheWriteP": 0,
+      "outputP": 20,
+      "notes": "Hidden by default; Faster speed but 2x price; Available reasoning effort variants are gpt-5-high-fast, gpt-5-low-fast",
+      "rules": {
+        "isFastModeVariant": true
+      }
+    },
+    {
+      "name": "GPT-5 Mini",
+      "inputP": 0.25,
+      "cacheP": 0.025,
+      "cacheWriteP": 0,
+      "outputP": 2,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5-Codex",
+      "inputP": 1.25,
+      "cacheP": 0.125,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Hidden by default; Agentic and reasoning capabilities",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.1 Codex",
+      "inputP": 1.25,
+      "cacheP": 0.125,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Hidden by default; Agentic and reasoning capabilities",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.1 Codex Max",
+      "inputP": 1.25,
+      "cacheP": 0.125,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.1 Codex Mini",
+      "inputP": 0.25,
+      "cacheP": 0.025,
+      "cacheWriteP": 0,
+      "outputP": 2,
+      "notes": "Hidden by default; Agentic and reasoning capabilities; 4x rate limits compared to GPT-5.1 Codex",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.2",
+      "inputP": 1.75,
+      "cacheP": 0.175,
+      "cacheWriteP": 0,
+      "outputP": 14,
+      "notes": "Hidden by default; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.2-high",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.2 Codex",
+      "inputP": 1.75,
+      "cacheP": 0.175,
+      "cacheWriteP": 0,
+      "outputP": 14,
+      "notes": "Hidden by default; Agentic and reasoning capabilities",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GPT-5.3 Codex",
+      "inputP": 1.75,
+      "cacheP": 0.175,
+      "cacheWriteP": 0,
+      "outputP": 14,
+      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.3-codex-high",
+      "rules": {
+        "requiresMaxMode": true
+      }
+    },
+    {
+      "name": "GPT-5.4",
+      "inputP": 2.5,
+      "cacheP": 0.25,
+      "cacheWriteP": 0,
+      "outputP": 15,
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; 90% discount on cached input tokens; Fast mode is 15% faster with 2x pricing; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "cachedInputDiscountPct": 90,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200,
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "GPT-5.4 Mini",
+      "inputP": 0.75,
+      "cacheP": 0.075,
+      "cacheWriteP": 0,
+      "outputP": 4.5,
+      "notes": "Hidden by default; Smaller, faster variant of GPT-5.4; 90% discount on cached input tokens",
+      "rules": {
+        "hidden": true,
+        "cachedInputDiscountPct": 90
+      }
+    },
+    {
+      "name": "GPT-5.4 Nano",
+      "inputP": 0.2,
+      "cacheP": 0.02,
+      "cacheWriteP": 0,
+      "outputP": 1.25,
+      "notes": "Hidden by default; Smallest GPT-5.4 variant, optimized for cost; 90% discount on cached input tokens",
+      "rules": {
+        "hidden": true,
+        "cachedInputDiscountPct": 90
+      }
+    },
+    {
+      "name": "GPT-5.5",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 0,
+      "outputP": 30,
+      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; More token-efficient than GPT-5.4 on comparable tasks; Improved persistence on long-running tasks; Fast mode is available at higher rates; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "rules": {
+        "requiresMaxMode": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200,
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "Grok 4.20",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 6,
+      "notes": "Hidden by default; The cost is 2x when the input exceeds 200k tokens",
+      "rules": {
+        "hidden": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200
+      }
+    },
+    {
+      "name": "Grok 4.3",
+      "inputP": 1.25,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "Requires Max Mode on request-based plans",
+      "rules": {
+        "requiresMaxMode": true
+      }
+    },
+    {
+      "name": "Kimi K2.5",
+      "inputP": 0.6,
+      "cacheP": 0.1,
+      "cacheWriteP": 0,
+      "outputP": 3,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    }
+  ],
+  "autoPool": {
+    "name": "Auto + Composer",
+    "inputP": 1.25,
+    "cacheP": 0.25,
+    "cacheWriteP": 1.25,
+    "outputP": 6
+  }
 }
