@@ -116,10 +116,10 @@ let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:28, cacheK:8,  outputK:4, modelId:"c25s" },
-  { id:2, name:"Code",          inputK:67, cacheK:18, outputK:8, modelId:"c25s" },
-  { id:3, name:"Review / Plan", inputK:45, cacheK:14, outputK:4, modelId:"c25s" },
-  { id:4, name:"Code",          inputK:80, cacheK:22, outputK:8, modelId:"c25s" },
+  { id:1, name:"Review / Plan", inputK:100, cacheK:94,  outputK:1, modelId:"c25s" },
+  { id:2, name:"Code",          inputK:215, cacheK:201, outputK:1, modelId:"c25s" },
+  { id:3, name:"Review / Plan", inputK:130, cacheK:122, outputK:1, modelId:"c25s" },
+  { id:4, name:"Code",          inputK:221, cacheK:206, outputK:1, modelId:"c25s" },
 ];
 const DEFAULT_MODELS = [
   { id:"c25s",  name:"Composer 2.5",      inputP:0.50, cacheP:0.20, outputP:2.50,  color:"#00d4aa" },
@@ -148,7 +148,7 @@ const fmtMoney = (n, cur) => {
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
-const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:5,cModelId:"c25s",rModelId:"c25s",revInK:80,revCacheK:20,revOutK:12,reviewEvery:10,currency:"USD"});
+const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:5,cModelId:"c25s",rModelId:"c25s",revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD"});
 const encodeConfig = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 const decodeConfig = raw => JSON.parse(decodeURIComponent(escape(atob(raw))));
 function sanitizeConfig(raw) {
@@ -338,6 +338,7 @@ function App() {
     const next = models.filter(m=>m.id!==id);
     setModels(next);
     const fb = next[0]?.id||"";
+    setSteps(ss=>ss.map(s=>s.modelId===id?{...s,modelId:fb}:s));
     if(cModelId===id) setCModelId(fb);
     if(rModelId===id) setRModelId(fb);
   };
