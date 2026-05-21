@@ -109,17 +109,17 @@ const C = {
   mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
 };
 
-const STORAGE_KEY = "cursor-calc:v3";
+const STORAGE_KEY = "cursor-calc:v4";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
 const PRICING_UPDATED = "2026-05-21";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:28, cacheK:0, outputK:4  },
-  { id:2, name:"Code",          inputK:67, cacheK:0, outputK:8  },
-  { id:3, name:"Review / Plan", inputK:45, cacheK:0, outputK:4  },
-  { id:4, name:"Code",          inputK:80, cacheK:0, outputK:8  },
+  { id:1, name:"Review / Plan", inputK:28, cacheK:8,  outputK:4, modelId:"c25s" },
+  { id:2, name:"Code",          inputK:67, cacheK:18, outputK:8, modelId:"c25s" },
+  { id:3, name:"Review / Plan", inputK:45, cacheK:14, outputK:4, modelId:"c25s" },
+  { id:4, name:"Code",          inputK:80, cacheK:22, outputK:8, modelId:"c25s" },
 ];
 const DEFAULT_MODELS = [
   { id:"c25s",  name:"Composer 2.5",      inputP:0.50, cacheP:0.20, outputP:2.50,  color:"#00d4aa" },
@@ -135,9 +135,9 @@ const PLANS = [
   { name:"Ultra", price:200 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyse",inputK:20,cacheK:5,outputK:3},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5}] },
-  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5}] },
-  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyse",inputK:20,cacheK:5,outputK:3,modelId:"c25s"},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:"c25s"}] },
+  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5,modelId:"c25s"},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10,modelId:"c25s"},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5,modelId:"c25s"}] },
+  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8,modelId:"c25s"},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9,modelId:"c25s"},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16,modelId:"c25s"},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7,modelId:"c25s"}] },
 ];
 const RATES = { USD:1, EUR:0.92 };
 const SYMBOLS = { USD:"$", EUR:"€" };
@@ -148,7 +148,7 @@ const fmtMoney = (n, cur) => {
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
-const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:9,cModelId:"c25f",rModelId:"gpt55",revInK:80,revCacheK:0,revOutK:12,reviewEvery:10,currency:"USD"});
+const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:5,cModelId:"c25s",rModelId:"c25s",revInK:80,revCacheK:20,revOutK:12,reviewEvery:10,currency:"USD"});
 const encodeConfig = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 const decodeConfig = raw => JSON.parse(decodeURIComponent(escape(atob(raw))));
 function sanitizeConfig(raw) {
@@ -159,17 +159,19 @@ function sanitizeConfig(raw) {
     inputP:Number(m.inputP)||0, cacheP:Number(m.cacheP)||0, outputP:Number(m.outputP)||0,
     color:String(m.color||"#00d4aa")
   })) : d.models;
+  const cModelId = models.some(m=>m.id===raw.cModelId)?raw.cModelId:models[0].id;
   const steps = Array.isArray(raw.steps) && raw.steps.length ? raw.steps.map(s=>{
     const inputK = Math.max(1,parseInt(s.inputK)||1);
     return {id:s.id||uid("s"), name:String(s.name||"Step"), inputK,
       cacheK:Math.min(inputK,Math.max(0,parseInt(s.cacheK)||0)),
-      outputK:Math.max(1,parseInt(s.outputK)||1)};
+      outputK:Math.max(1,parseInt(s.outputK)||1),
+      modelId:models.some(m=>m.id===s.modelId)?s.modelId:cModelId};
   }) : d.steps;
   const revInK = Math.max(1,parseInt(raw.revInK)||d.revInK);
   return {
     steps, models,
     sessions:Math.min(50,Math.max(1,parseInt(raw.sessions)||d.sessions)),
-    cModelId:models.some(m=>m.id===raw.cModelId)?raw.cModelId:models[0].id,
+    cModelId,
     rModelId:models.some(m=>m.id===raw.rModelId)?raw.rModelId:models[0].id,
     revInK,
     revCacheK:Math.min(revInK,Math.max(0,parseInt(raw.revCacheK)||d.revCacheK)),
@@ -280,9 +282,13 @@ function App() {
   const totOutK = sessions * sesOutK;
   const cModel  = models.find(m=>m.id===cModelId) || models[0];
   const rModel  = models.find(m=>m.id===rModelId) || cModel;
+  const modelForStep = step => models.find(m=>m.id===(step.modelId||cModelId)) || cModel;
+  const selectedStepModels = steps.map(modelForStep);
+  const uniqueStepModelNames = [...new Set(selectedStepModels.map(m=>m.name))];
+  const sessionModelLabel = uniqueStepModelNames.length===1 ? uniqueStepModelNames[0] : "gemischte Modelle";
   const reviewCount = Math.max(1, Math.ceil(sessions / reviewEvery));
-  const sesCost = calcCost(cModel, sesInK, sesCacheK, sesOutK);
-  const totCost = calcCost(cModel, totInK, totCacheK, totOutK);
+  const sesCost = steps.reduce((sum,step)=>sum+calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK),0);
+  const totCost = sessions * sesCost;
   const oneRevCost = calcCost(rModel, revInK, Math.min(revCacheK,revInK), revOutK);
   const revCost = reviewCount * oneRevCost;
   const grand   = totCost + revCost;
@@ -300,7 +306,7 @@ function App() {
     const value = f==="cacheK" ? Math.min(v,s.inputK) : v;
     return {...s,[f]:value};
   }));
-  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"Neuer Step",inputK:30,cacheK:5,outputK:5}]);
+  const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"Neuer Step",inputK:30,cacheK:5,outputK:5,modelId:cModelId}]);
   const delStep  = id => { if(steps.length>1) setSteps(ss=>ss.filter(s=>s.id!==id)); };
   const dupStep  = step => setSteps(ss=>{
     const next = [];
@@ -408,7 +414,7 @@ function App() {
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:800,fontSize:14,letterSpacing:-0.3}}>Cursor Calc</div>
             <div style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>
-              {sessions} Sessions · {fmtTok(sesInK+sesOutK)}/Session
+              {sessions} Sessions · {fmtTok(sesInK+sesOutK)}/Session · {sessionModelLabel}
             </div>
           </div>
           <div style={{fontFamily:C.mono,fontWeight:800,fontSize:20,color:C.purple,flexShrink:0}}>
@@ -482,6 +488,10 @@ function App() {
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
+                <div style={{marginBottom:10}}>
+                  <Label>Modell für diesen Step</Label>
+                  <ModelSelect label={`Modell für Step ${i+1}`} models={models} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
+                </div>
                 <TokSlider label="Input-Tokens" value={step.inputK} color={C.teal} max={500}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
                 <TokSlider label="Cache-Read Tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
@@ -489,7 +499,7 @@ function App() {
                 <TokSlider label="Output-Tokens" value={step.outputK} color={C.amber} max={100}
                   onChange={v=>updStep(step.id,"outputK",v)}/>
                 <div style={{fontFamily:C.mono,fontSize:11,color:C.blue,marginTop:2}}>
-                  ⟹ {money(calcCost(cModel,step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK))} mit {cModel.name}
+                  ⟹ {money(calcCost(modelForStep(step),step.inputK,Math.min(step.cacheK||0,step.inputK),step.outputK))} mit {modelForStep(step).name}
                 </div>
               </div>
             ))}
@@ -512,8 +522,8 @@ function App() {
                   color:C.teal,minWidth:36,textAlign:"right"}}>{sessions}</span>
               </div>
             </div>
-            <Label>Modell für Sessions</Label>
-            <ModelSelect label="Modell für Sessions" models={models} value={cModelId} onChange={setCModelId}/>
+            <Label>Standard-Modell für neue Steps</Label>
+            <ModelSelect label="Standard-Modell für neue Steps" models={models} value={cModelId} onChange={setCModelId}/>
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:cModel.color}}>
               Kosten gesamt: {money(totCost)}
             </div>
@@ -712,13 +722,13 @@ function App() {
 
           <Panel title="Aufschlüsselung">
             {[
-              {label:`1 Session (${cModel.name})`,inK:sesInK,cacheK:sesCacheK,outK:sesOutK,m:cModel,cost:sesCost},
-              {label:`${sessions}× Sessions`,inK:totInK,cacheK:totCacheK,outK:totOutK,m:cModel,cost:totCost,bold:true},
+              {label:`1 Session (${sessionModelLabel})`,inK:sesInK,cacheK:sesCacheK,outK:sesOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:sesCost},
+              {label:`${sessions}× Sessions`,inK:totInK,cacheK:totCacheK,outK:totOutK,color:uniqueStepModelNames.length===1?selectedStepModels[0].color:C.blue,cost:totCost,bold:true},
               {label:`${reviewCount}× Review`,inK:reviewCount*revInK,cacheK:reviewCount*revCacheK,outK:reviewCount*revOutK,m:rModel,cost:revCost,bold:true},
             ].map((r,i)=>(
               <div key={i} style={{padding:"11px 0",borderBottom:`1px solid ${C.border}`,
                 display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
-                <div style={{fontWeight:r.bold?700:400,color:r.bold?r.m.color:C.muted,fontSize:12}}>
+                <div style={{fontWeight:r.bold?700:400,color:r.bold?(r.color||r.m.color):C.muted,fontSize:12}}>
                   {r.label}
                 </div>
                 <div style={{display:"flex",gap:10,fontFamily:C.mono,fontSize:12}}>
@@ -748,7 +758,8 @@ function App() {
                   <span style={{color:C.teal}}>{fmtTok(s.inputK)}</span>
                   <span style={{color:C.muted}}>{fmtTok(Math.min(s.cacheK||0,s.inputK))}</span>
                   <span style={{color:C.amber}}>{fmtTok(s.outputK)}</span>
-                  <span style={{color:C.blue}}>{money(calcCost(cModel,s.inputK,Math.min(s.cacheK||0,s.inputK),s.outputK))}</span>
+                  <span style={{color:modelForStep(s).color}}>{modelForStep(s).name}</span>
+                  <span style={{color:C.blue}}>{money(calcCost(modelForStep(s),s.inputK,Math.min(s.cacheK||0,s.inputK),s.outputK))}</span>
                 </div>
               </div>
             ))}
