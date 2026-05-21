@@ -116,17 +116,17 @@ const PRICING_UPDATED = "live at startup";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
-const DEFAULT_MODEL_ID = "cursor-catalog-pending";
+const PLACEHOLDER_MODEL_ID = "cursor-catalog-pending";
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:100, cacheK:94,  outputK:1, modelId:DEFAULT_MODEL_ID },
-  { id:2, name:"Code",          inputK:215, cacheK:201, outputK:1, modelId:DEFAULT_MODEL_ID },
-  { id:3, name:"Review / Plan", inputK:130, cacheK:122, outputK:1, modelId:DEFAULT_MODEL_ID },
-  { id:4, name:"Code",          inputK:234, cacheK:219, outputK:1, modelId:DEFAULT_MODEL_ID },
+  { id:1, name:"Review / Plan", inputK:100, cacheK:94,  outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:2, name:"Code",          inputK:215, cacheK:201, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:3, name:"Review / Plan", inputK:130, cacheK:122, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:4, name:"Code",          inputK:234, cacheK:219, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
 ];
 const DEFAULT_MODELS = [
-  { id:DEFAULT_MODEL_ID, name:"Loading Cursor models...", inputP:0, cacheP:0, cacheWriteP:0, outputP:0, color:"#5a6a85", source:"placeholder" },
+  { id:PLACEHOLDER_MODEL_ID, name:"Loading Cursor models...", inputP:0, cacheP:0, cacheWriteP:0, outputP:0, color:"#5a6a85", source:"placeholder" },
 ];
-const DEFAULT_ACTIVE_MODEL_IDS = [DEFAULT_MODEL_ID];
+const DEFAULT_ACTIVE_MODEL_IDS = [PLACEHOLDER_MODEL_ID];
 const COLOR_PALETTE = ["#00d4aa","#5ba8ff","#ffb347","#c084fc","#f472b6","#4ade80","#22d3ee","#fb7185","#a3e635","#facc15"];
 const PLANS = [
   { id:"hobby", name:"Hobby", defaultBudget:0 },
@@ -135,9 +135,9 @@ const PLANS = [
   { id:"ultra", name:"Ultra", defaultBudget:200 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:20,cacheK:5,outputK:3,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:DEFAULT_MODEL_ID}] },
-  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5,modelId:DEFAULT_MODEL_ID}] },
-  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16,modelId:DEFAULT_MODEL_ID},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7,modelId:DEFAULT_MODEL_ID}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:20,cacheK:5,outputK:3,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7,modelId:PLACEHOLDER_MODEL_ID}] },
 ];
 const RATES = { USD:1, EUR:0.92 };
 const SYMBOLS = { USD:"$", EUR:"€" };
@@ -152,7 +152,7 @@ const cloneSteps = steps => steps.map(s=>({...s}));
 const cloneModels = models => models.map(m=>({...m}));
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (cacheK/1000)*(m.cacheWriteP||0) + (outK/1000)*m.outputP;
 const defaultPlanBudgets = () => Object.fromEntries(PLANS.map(p=>[p.id,p.defaultBudget]));
-const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],sessions:5,cModelId:DEFAULT_MODEL_ID,rModelId:DEFAULT_MODEL_ID,revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD",planBudgets:defaultPlanBudgets()});
+const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],sessions:5,cModelId:PLACEHOLDER_MODEL_ID,rModelId:PLACEHOLDER_MODEL_ID,revInK:80,revCacheK:70,revOutK:1,reviewEvery:10,currency:"USD",planBudgets:defaultPlanBudgets()});
 const normalizeModelName = name => String(name||"Model").replace(/\s+/g," ").trim();
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const modelIdFromName = name => `cursor-${modelKey(name).replace(/\s+/g,"-").slice(0,48) || uid("m")}`;
@@ -161,6 +161,8 @@ const isCursorModel = model => model?.source === "cursor";
 const isPlaceholderModel = model => model?.source === "placeholder";
 const CACHE_READ_HEADERS = ["cache read","cached input","cache hit","cache"];
 const CACHE_WRITE_HEADERS = ["cache write","cache fill","cache populate","cache creation","cache storage"];
+// Fallback parser for text fragments like: Model name $input/M $cache/M $output/M.
+const INVALID_MODEL_KEYS = new Set(["model","name","input","output","price"]);
 const TEXT_PRICE_ROW_RE = /([^$\n]{2,90}?)\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?(?:\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?)?(?:\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?)?/gi;
 const clampReviewInterval = (value, fallback=0) => {
   const parsed = parseInt(value);
@@ -234,7 +236,7 @@ function parseCursorPricing(html) {
   const addParsedModel = (model, index=parsedByKey.size) => {
     const name = normalizeModelName(model.name);
     const key = modelKey(name);
-    if(!key || key.length < 2 || ["model","name","input","output","price"].includes(key) || key.includes("pricing") || key.includes("token")) return;
+    if(!key || key.length < 2 || INVALID_MODEL_KEYS.has(key) || key.includes("pricing") || key.includes("token")) return;
     const inputP = Number(model.inputP)||0;
     const outputP = Number(model.outputP)||0;
     if(!inputP || !outputP) return;
@@ -953,7 +955,7 @@ function App() {
                   <input aria-label="Model name" value={m.name} onChange={e=>updModel(m.id,"name",e.target.value)}
                     style={{flex:1,background:"transparent",border:"none",color:m.color,
                       fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
-                  <button aria-label={`Delete ${m.name}`} disabled={customModels.length<=0 && models.length<=1} onClick={()=>delModel(m.id)}
+                  <button aria-label={`Delete ${m.name}`} disabled={models.length<=1} onClick={()=>delModel(m.id)}
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
