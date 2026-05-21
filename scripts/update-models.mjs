@@ -106,24 +106,59 @@ function findHeaderIndex(headers, words) {
   return headers.findIndex((h) => words.some((w) => h.includes(w)));
 }
 
+// Find the first index whose header contains any of `words` AND none of `excludeWords`.
+// Falls back to the plain `findHeaderIndex` match if no exclusive match exists, so a
+// table that only has a "Cached input" column still parses (just less precisely).
+function findHeaderIndexExcluding(headers, words, excludeWords) {
+  const strict = headers.findIndex(
+    (h) => words.some((w) => h.includes(w)) && !excludeWords.some((w) => h.includes(w))
+  );
+  return strict >= 0 ? strict : findHeaderIndex(headers, words);
+}
+
+// The first row isn't always the header row: Mintlify occasionally renders a
+// section-label row (single cell with colspan) or a multi-row header (e.g. a
+// "Pricing ($/1M tokens)" group above the actual `Input`/`Output` columns).
+// Pick the first row that actually looks like a pricing header.
+function findHeaderRowIndex(rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const headers = rows[i].map((h) => h.toLowerCase());
+    if (
+      headers.some((h) => h.includes("input")) &&
+      headers.some((h) => h.includes("output"))
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 function parseModelsFromTables(tables) {
   const byKey = new Map();
   for (const rows of tables) {
     if (rows.length < 2) continue;
-    const headers = rows[0].map((h) => h.toLowerCase());
+    const headerRowIdx = findHeaderRowIndex(rows);
+    if (headerRowIdx < 0) continue;
+    const headers = rows[headerRowIdx].map((h) => h.toLowerCase());
     const nameIdx = Math.max(findHeaderIndex(headers, ["model", "name"]), 0);
-    const inputIdx = findHeaderIndex(headers, ["input"]);
-    const outputIdx = findHeaderIndex(headers, ["output"]);
+    // Avoid binding the "Input" column to "Cached input" / "Output" to a
+    // hypothetical "Output cache" column when both variants are present.
+    const inputIdx = findHeaderIndexExcluding(headers, ["input"], ["cache", "cached"]);
+    const outputIdx = findHeaderIndexExcluding(headers, ["output"], ["cache", "cached"]);
     if (inputIdx < 0 || outputIdx < 0) continue;
     const cacheReadIdx = findHeaderIndex(headers, CACHE_READ_HEADERS);
     const cacheWriteIdx = findHeaderIndex(headers, CACHE_WRITE_HEADERS);
+    const minCells =
+      Math.max(nameIdx, inputIdx, outputIdx, cacheReadIdx, cacheWriteIdx) + 1;
 
-    for (let i = 1; i < rows.length; i++) {
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
       const cells = rows[i];
-      // Require enough cells to safely index name/input/output. We don't
-      // demand an exact match because Mintlify sometimes emits an extra
-      // empty trailing cell, but we never read past `headers.length-1`.
-      if (cells.length < headers.length) continue;
+      // Only require enough cells to safely index the columns we read. The
+      // previous `cells.length < headers.length` guard dropped valid rows
+      // whenever Mintlify emitted a header row with a colspan group cell
+      // (fewer header cells than data cells) or trimmed a trailing empty
+      // cell on data rows.
+      if (cells.length < minCells) continue;
       const rawName = cells[nameIdx] || "";
       // Strip provider icons / "(beta)" notes that follow the model name.
       const name = rawName.replace(/\s+/g, " ").trim();
