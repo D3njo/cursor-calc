@@ -538,7 +538,7 @@ function App() {
                 </div>
                 <TokSlider label="Input tokens" value={step.inputK} color={C.teal} max={500}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
-                <TokSlider label="Cache-Read Tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
+                <TokSlider label="Cache read tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
                   onChange={v=>updStep(step.id,"cacheK",v)}/>
                 <TokSlider label="Output tokens" value={step.outputK} color={C.amber} max={100}
                   onChange={v=>updStep(step.id,"outputK",v)}/>
@@ -595,8 +595,8 @@ function App() {
                     padding:"9px 10px",textAlign:"right"}}/>
               </div>
               <div>
-                <Label>Cache-Read (k)</Label>
-                <input aria-label="Review Cache-Read Tokens" type="number" value={revCacheK} min={0} max={revInK} step={1}
+                <Label>Cache read (k)</Label>
+                <input aria-label="Review cache read tokens" type="number" value={revCacheK} min={0} max={revInK} step={1}
                   onChange={e=>setRevCacheK(Math.min(revInK,Math.max(0,parseInt(e.target.value)||0)))}
                   style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                     borderRadius:4,color:C.muted,fontFamily:C.mono,fontSize:15,
@@ -615,7 +615,7 @@ function App() {
               Review cost: {reviewEnabled ? `${reviewCount} × ${money(oneRevCost)} = ${money(revCost)}` : "disabled"}
             </div>
             <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
-              Set interval to 0 to skip review sessions. Cache-read tokens are subtracted from input and charged only at the cache price.
+              Set interval to 0 to skip review sessions. Cache read tokens are subtracted from input and charged only at the cache price.
             </div>
           </Panel>
           <Panel title="Monthly Budgets (editable)">
@@ -741,7 +741,7 @@ function App() {
                       borderRadius:4,color:C.text,fontFamily:C.sans,fontSize:13,padding:"9px 10px"}}/>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
-                  {[["inputP","Input"],["cacheP","Cache-Read"],["outputP","Output"]].map(([f,l])=>(
+                  {[["inputP","Input"],["cacheP","Cache read"],["outputP","Output"]].map(([f,l])=>(
                     <div key={f}>
                       <Label>{l} $/M</Label>
                       <input aria-label={`New model ${l} price`} type="number" value={draft[f]} min={0} step={0.01}
