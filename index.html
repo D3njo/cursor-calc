@@ -111,6 +111,7 @@ const C = {
 
 const STORAGE_KEY = "cursor-calc:v4";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
+// Used only for a best-effort startup refresh; stored/default prices stay in place if it fails.
 const CURSOR_PRICING_URL = "https://cursor.com/docs/models-and-pricing";
 const PRICING_UPDATED = "2026-05-21";
 let _id = 20;
@@ -161,6 +162,7 @@ const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels
 const normalizeModelName = name => String(name||"Model").replace(/Claude\s+4[.]7\s+Sonnet/g,"Claude Sonnet 4.6").replace(/Claude\s+4[.]7\s+Opus/g,"Claude Opus 4.6");
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const modelIdFromName = name => modelKey(name).replace(/\s+/g,"").slice(0,32) || uid("m");
+const CACHE_WRITE_HEADERS = ["cache write","cache fill","cache populate","cache creation","cache storage"];
 const TEXT_PRICE_ROW_RE = /([A-Z][A-Za-z0-9 .:+-]{2,60}?)\s+\$([0-9.]+)\s+\$([0-9.]+)(?:\s+\$([0-9.]+))?/g;
 const clampReviewInterval = (value, fallback=0) => {
   const parsed = parseInt(value);
@@ -241,7 +243,7 @@ function parseCursorPricing(html) {
       const nameIndex = headerNameIndex >= 0 ? headerNameIndex : 0;
       const inputIndex = findHeaderIndex(["input"]);
       const cacheReadIndex = findHeaderIndex(["cache read","cached input","cache hit"]);
-      const cacheWriteIndex = findHeaderIndex(["cache write","cache fill","cache populate","cache creation","cache storage"]);
+      const cacheWriteIndex = findHeaderIndex(CACHE_WRITE_HEADERS);
       const outputIndex = findHeaderIndex(["output"]);
       if(inputIndex < 0 || outputIndex < 0) return;
       const prices = cells.map(parsePrice);
@@ -263,7 +265,7 @@ function parseCursorPricing(html) {
   const text = stripCellHtml(html);
   // Fallback for plain text fragments like: ModelName $input $cache $output.
   return [...text.matchAll(TEXT_PRICE_ROW_RE)]
-    .map((m,i)=>({id:modelIdFromName(m[1]),name:normalizeModelName(m[1].trim()),inputP:Number(m[2]),cacheP:0,cacheWriteP:0,outputP:Number(m[4]||m[3]),color:COLOR_PALETTE[i%COLOR_PALETTE.length],source:"cursor"}));
+    .map(([,name,inputPrice,cacheOrOutputPrice,outputPrice],i)=>({id:modelIdFromName(name),name:normalizeModelName(name.trim()),inputP:Number(inputPrice),cacheP:0,cacheWriteP:0,outputP:Number(outputPrice||cacheOrOutputPrice),color:COLOR_PALETTE[i%COLOR_PALETTE.length],source:"cursor"}));
 }
 function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
   if(!cursorModels.length) return currentModels;
@@ -420,10 +422,10 @@ function App() {
   useEffect(() => {
     let ignore = false;
     const cursorPricingUrl = new URL(CURSOR_PRICING_URL);
-    // Keep the runtime fetch pinned to Cursor even if the constant is edited later.
+    // Keep the runtime fetch pinned to Cursor even if the URL is edited later.
     if(cursorPricingUrl.origin !== "https://cursor.com") return;
     fetch(cursorPricingUrl.href, {cache:"no-store"})
-      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${cursorPricingUrl.href}: HTTP ${r.status}`)))
+      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${cursorPricingUrl.href}: HTTP ${r.status}; using stored prices`)))
       .then(html => {
         if(ignore) return;
         const cursorModels = parseCursorPricing(html);
@@ -594,7 +596,7 @@ function App() {
       <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
         <div style={{background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,padding:10,marginBottom:12,
           fontFamily:C.mono,fontSize:11,color:C.muted}}>
-          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices refresh at startup; cached values are used if unavailable.
+          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices refresh at startup; stored values are used if unavailable.
         </div>
 
         {/* STEPS */}
@@ -826,6 +828,7 @@ function App() {
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                   <label style={{display:"flex",alignItems:"center",gap:5,fontFamily:C.mono,fontSize:10,color:C.muted,flexShrink:0}}>
                     <input aria-label={`Use ${m.name} in selectors`} type="checkbox" checked={activeModelIds.includes(m.id)}
+                      disabled={activeModelIds.includes(m.id) && activeModelIds.length<=1}
                       onChange={e=>setActiveModelIds(ids=>{
                         if(e.target.checked) return ids.includes(m.id) ? ids : [...ids,m.id];
                         const next = ids.filter(id=>id!==m.id);
