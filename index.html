@@ -234,10 +234,20 @@ const USAGE_POOLS = [
 ];
 const RATES = { USD:1, EUR:0.92 };
 const SYMBOLS = { USD:"$", EUR:"€" };
+/** Internal amounts (costs, plan budgets, $/M rates) are stored in USD. */
+const toDisplayAmount = (usd, cur) => (Number(usd) || 0) * RATES[cur];
+const fromDisplayAmount = (val, cur) => (Number(val) || 0) / RATES[cur];
+const fmtInputAmount = (usd, cur) => Number(toDisplayAmount(usd, cur).toFixed(2));
+const pricePerMLabel = cur => `${SYMBOLS[cur]}/M`;
+const fmtUsdPerM = (usd, cur) => {
+  const v = toDisplayAmount(usd, cur);
+  const sym = SYMBOLS[cur];
+  return v < 0.005 ? `${sym}0.00` : `${sym}${v.toFixed(2)}`;
+};
 
 const fmtTok = k => k >= 1000 ? `${(k/1000).toFixed(1)}M` : `${k}k`;
 const fmtMoney = (n, cur) => {
-  const v = n * RATES[cur];
+  const v = toDisplayAmount(n, cur);
   if (Math.abs(v) < Number.EPSILON) return `${SYMBOLS[cur]}0.00`;
   return v < 0.005 ? `<${SYMBOLS[cur]}0.01` : `${SYMBOLS[cur]}${v.toFixed(2)}`;
 };
@@ -585,6 +595,9 @@ function App() {
   const poolLabel = usagePool === "auto" ? "Auto + Composer" : "API (per model)";
   const pct     = n => grand ? Math.min(n/grand*100,100).toFixed(0)+"%" : "0%";
   const money   = n => fmtMoney(n, currency);
+  const displayPrice = usd => fmtInputAmount(usd, currency);
+  const savePrice = val => fromDisplayAmount(val, currency);
+  const perMLabel = pricePerMLabel(currency);
   const persistedActiveModelIds = [...new Set([...activeModelIds,...customModels.map(m=>m.id)])];
   const cfg = {steps,models,activeModelIds:persistedActiveModelIds,sessions,cModelId,rModelId,revInK,revCacheReadK,revCacheWriteK,revOutK,reviewEvery,usagePool,maxMode,sessionFastMode,fastModeByModelId,currency,planBudgets};
   const cursorCatalogModels = models.filter(isCursorModel);
@@ -937,7 +950,7 @@ function App() {
               <ModelSelect label="Billing pool" models={USAGE_POOLS} value={usagePool} onChange={setUsagePool}/>
               <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
                 {usagePool==="auto"
-                  ? `Auto + Composer: $${catalogAutoPool.inputP}/M input, $${catalogAutoPool.cacheWriteP}/M cache write, $${catalogAutoPool.cacheP}/M cache read, $${catalogAutoPool.outputP}/M output`
+                  ? `Auto + Composer: ${fmtUsdPerM(catalogAutoPool.inputP,currency)}/M input, ${fmtUsdPerM(catalogAutoPool.cacheWriteP,currency)}/M cache write, ${fmtUsdPerM(catalogAutoPool.cacheP,currency)}/M cache read, ${fmtUsdPerM(catalogAutoPool.outputP,currency)}/M output`
                   : "API pool uses each model's list price from the catalog."}
               </div>
             </div>
@@ -1021,8 +1034,8 @@ function App() {
               {PLANS.map(plan=>(
                 <div key={plan.id}>
                   <Label>{plan.name} budget ({currency})</Label>
-                  <input aria-label={`${plan.name} monthly budget`} type="number" value={Number(((planBudgets[plan.id]||0)*RATES[currency]).toFixed(2))} min={0} step={1}
-                    onChange={e=>updPlanBudget(plan.id,(Number(e.target.value)||0)/RATES[currency])}
+                  <input aria-label={`${plan.name} monthly budget`} type="number" value={displayPrice(planBudgets[plan.id]||0)} min={0} step={1}
+                    onChange={e=>updPlanBudget(plan.id,savePrice(e.target.value))}
                     style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                       borderRadius:4,color:C.blue,fontFamily:C.mono,fontSize:15,
                       padding:"9px 10px",textAlign:"right"}}/>
@@ -1198,9 +1211,9 @@ function App() {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
                   {[["inputP","Input",C.teal],["cacheP","Cache read",C.muted],["cacheWriteP","Cache write",C.blue],["outputP","Output",C.amber]].map(([f,l,c])=>(
                     <div key={f}>
-                      <Label>{l} $/M</Label>
-                      <input aria-label={`${m.name} ${l} price`} type="number" value={m[f]} min={0} max={9999} step={0.01}
-                        onChange={e=>updModel(m.id,f,parseFloat(e.target.value)||0)}
+                      <Label>{l} {perMLabel}</Label>
+                      <input aria-label={`${m.name} ${l} price`} type="number" value={displayPrice(m[f])} min={0} max={9999} step={0.01}
+                        onChange={e=>updModel(m.id,f,savePrice(e.target.value))}
                         style={{width:"100%",background:C.s2,border:`1px solid ${C.border2}`,
                           borderRadius:4,color:c,fontFamily:C.mono,fontSize:13,
                           padding:"7px 8px",textAlign:"right"}}/>
@@ -1224,9 +1237,9 @@ function App() {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
                   {[["inputP","Input"],["cacheP","Cache read"],["cacheWriteP","Cache write"],["outputP","Output"]].map(([f,l])=>(
                     <div key={f}>
-                      <Label>{l} $/M</Label>
-                      <input aria-label={`New model ${l} price`} type="number" value={draft[f]} min={0} step={0.01}
-                        onChange={e=>setDraft(d=>({...d,[f]:parseFloat(e.target.value)||0}))}
+                      <Label>{l} {perMLabel}</Label>
+                      <input aria-label={`New model ${l} price`} type="number" value={displayPrice(draft[f])} min={0} step={0.01}
+                        onChange={e=>setDraft(d=>({...d,[f]:savePrice(e.target.value)}))}
                         style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
                           borderRadius:4,color:C.text,fontFamily:C.mono,fontSize:13,
                           padding:"7px 8px",textAlign:"right"}}/>
