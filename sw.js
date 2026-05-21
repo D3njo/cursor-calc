@@ -1,4 +1,4 @@
-const CACHE = 'cursor-calc-v7';
+const CACHE = 'cursor-calc-v8';
 // Increment CACHE whenever app shell files or cached CDN dependencies change.
 const ASSETS = [
   './',
@@ -26,35 +26,52 @@ self.addEventListener('activate', e => {
   );
 });
 
-const isModelsCatalog = url => {
-  try { return new URL(url).pathname.endsWith('/models.json'); }
+self.addEventListener('message', e => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+const sameOrigin = url => {
+  try { return new URL(url).origin === self.location.origin; }
   catch { return false; }
+};
+
+// Network-first: always try the network, fall back to cache when offline.
+// Used for the app shell so users immediately get the latest deploy.
+const networkFirst = (request) => {
+  return fetch(request).then(res => {
+    if (res && res.ok) {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(request, clone)).catch(() => {});
+    }
+    return res;
+  }).catch(() => caches.match(request).then(r => {
+    if (r) return r;
+    if (request.mode === 'navigate') return caches.match('./index.html');
+    return new Response('Offline', {status:503, headers:{'Content-Type':'text/plain'}});
+  }));
+};
+
+// Cache-first: serve from cache, fall back to network. Used for versioned
+// 3rd-party CDN libs whose URL changes when the version changes.
+const cacheFirst = (request) => {
+  return caches.match(request).then(r => r || fetch(request).then(res => {
+    if (res && res.ok) {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(request, clone)).catch(() => {});
+    }
+    return res;
+  }).catch(() => new Response('Offline', {status:503, headers:{'Content-Type':'text/plain'}})));
 };
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  // Network-first for the model catalog so price refreshes appear immediately
-  // when online, with cached fallback for offline use.
-  if (isModelsCatalog(e.request.url)) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return res;
-      }).catch(() => caches.match(e.request).then(r =>
-        r || new Response('{"models":[]}', {status:200, headers:{'Content-Type':'application/json'}})
-      ))
-    );
+  // Always go network-first for navigations and same-origin app shell so the
+  // newest deploy wins immediately when online; cache is only a fallback.
+  if (e.request.mode === 'navigate' || sameOrigin(e.request.url)) {
+    e.respondWith(networkFirst(e.request));
     return;
   }
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, clone));
-      return res;
-    }).catch(() => {
-      if (e.request.mode === 'navigate') return caches.match('./index.html');
-      return new Response('Offline', {status:503, headers:{'Content-Type':'text/plain'}});
-    }))
-  );
+  // Versioned CDN libraries: cache-first is fine because the URL changes
+  // whenever the version changes.
+  e.respondWith(cacheFirst(e.request));
 });
