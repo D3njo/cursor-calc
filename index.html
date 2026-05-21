@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+<script>
+(function(){
+  var k="cursor-calc:theme:v1",mode,t;
+  try{mode=localStorage.getItem(k)}catch(e){}
+  if(mode!=="light"&&mode!=="dark"&&mode!=="system")mode="system";
+  t=mode==="system"
+    ?(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark")
+    :mode;
+  document.documentElement.dataset.theme=t;
+})();
+</script>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
@@ -69,28 +80,43 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <style>
+:root,[data-theme="dark"]{
+  --bg:#07090e;--text:#c8d6ef;--muted:#5a6a85;--border:#1c2336;
+  --s1:#0d1018;--s2:#111520;--focus:#5ba8ff;--teal:#00d4aa;
+  --range-track:#1c2336;--thumb-ring:rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#f0f3f9;--text:#152238;--muted:#5a6d88;--border:#d4dce9;
+  --s1:#ffffff;--s2:#f5f7fc;--focus:#2563eb;--teal:#009678;
+  --range-track:#c5cedd;--thumb-ring:rgba(255,255,255,.85);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body,#root{height:100%;}
-body{background:#07090e;color:#c8d6ef;font-family:'Manrope',sans-serif;font-size:13px;
-  overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#1c2336;outline:none;cursor:pointer;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;cursor:pointer;background:currentColor;box-shadow:0 0 0 3px rgba(0,0,0,.4);}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;font-size:13px;
+  overscroll-behavior:none;-webkit-overflow-scrolling:touch;transition:background .2s,color .2s;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--range-track);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;cursor:pointer;background:currentColor;box-shadow:0 0 0 3px var(--thumb-ring);}
 input[type=number]{-moz-appearance:textfield;}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
 select{outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;}
-input:focus,select:focus,button:focus{outline:1px solid #5ba8ff;outline-offset:2px;}
+input:focus,select:focus,button:focus{outline:1px solid var(--focus);outline-offset:2px;}
 button{font-family:'Manrope',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 button:disabled{cursor:not-allowed;opacity:.45;}
 button:active:not(:disabled){opacity:0.6;transform:scale(0.97);}
 ::-webkit-scrollbar{width:3px;height:3px;}
-::-webkit-scrollbar-thumb{background:#1c2336;border-radius:2px;}
+::-webkit-scrollbar-thumb{background:var(--range-track);border-radius:2px;}
 
 /* Install banner */
 #install-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;
-  background:linear-gradient(135deg,#0d1018,#111520);
-  border-top:1px solid #1c2336;padding:14px 16px;
-  align-items:center;gap:12px;animation:slideUp .3s ease;}
+  background:linear-gradient(135deg,var(--s1),var(--s2));
+  border-top:1px solid var(--border);padding:14px 16px;
+  align-items:center;gap:12px;animation:slideUp .3s ease;color:var(--text);}
 #install-banner.show{display:flex;}
+#install-banner .ib-title{font-weight:800;font-size:13px;color:var(--text);}
+#install-banner .ib-sub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+#install-banner .ib-install{background:color-mix(in srgb,var(--teal) 13%,transparent);border:1px solid var(--teal);
+  border-radius:8px;color:var(--teal);font-weight:700;font-size:13px;padding:8px 16px;}
+#install-banner .ib-dismiss{background:none;border:none;color:var(--muted);font-size:20px;padding:4px 8px;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 </style>
 </head>
@@ -101,12 +127,11 @@ button:active:not(:disabled){opacity:0.6;transform:scale(0.97);}
 <div id="install-banner">
   <div style="font-size:22px">⬡</div>
   <div style="flex:1">
-    <div style="font-weight:800;font-size:13px;color:#c8d6ef">Install Cursor Calc</div>
-    <div style="font-size:11px;color:#5a6a85;font-family:'IBM Plex Mono',monospace">Add to Home Screen</div>
+    <div class="ib-title">Install Cursor Calc</div>
+    <div class="ib-sub">Add to Home Screen</div>
   </div>
-  <button id="install-btn" style="background:#00d4aa22;border:1px solid #00d4aa;border-radius:8px;
-    color:#00d4aa;font-weight:700;font-size:13px;padding:8px 16px;">Install</button>
-  <button id="dismiss-btn" aria-label="Dismiss install prompt" style="background:none;border:none;color:#5a6a85;font-size:20px;padding:4px 8px;">✕</button>
+  <button id="install-btn" class="ib-install">Install</button>
+  <button id="dismiss-btn" class="ib-dismiss" aria-label="Dismiss install prompt">✕</button>
 </div>
 
 <script>
@@ -135,14 +160,79 @@ window.addEventListener('appinstalled', () => banner.classList.remove('show'));
 <script type="text/babel">
 const { useEffect, useRef, useState } = React;
 
-const C = {
-  bg:"#07090e", s1:"#0d1018", s2:"#111520", s3:"#161c2a",
-  border:"#1c2336", border2:"#252f45",
-  teal:"#00d4aa", amber:"#ffb347", purple:"#b39ddb",
-  red:"#ff6b6b", blue:"#5ba8ff", green:"#4ade80",
-  text:"#c8d6ef", muted:"#5a6a85", dim:"#2c3a52",
-  mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
+const THEME_STORAGE_KEY = "cursor-calc:theme:v1";
+const THEME_CYCLE = ["system", "dark", "light"];
+const THEMES = {
+  dark:{
+    bg:"#07090e", s1:"#0d1018", s2:"#111520", s3:"#161c2a",
+    border:"#1c2336", border2:"#252f45",
+    teal:"#00d4aa", amber:"#ffb347", purple:"#b39ddb",
+    red:"#ff6b6b", blue:"#5ba8ff", green:"#4ade80",
+    text:"#c8d6ef", muted:"#5a6a85", dim:"#2c3a52",
+    mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
+  },
+  light:{
+    bg:"#f0f3f9", s1:"#ffffff", s2:"#f5f7fc", s3:"#e8edf6",
+    border:"#d4dce9", border2:"#bcc8da",
+    teal:"#009678", amber:"#c77d0a", purple:"#6d28d9",
+    red:"#dc2626", blue:"#1d6fd8", green:"#15803d",
+    text:"#152238", muted:"#5a6d88", dim:"#94a3bc",
+    mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
+  },
 };
+const THEME_ICONS = { system:"◐", dark:"☽", light:"☀" };
+const THEME_LABELS = {
+  system:"System (follows device)",
+  dark:"Dark",
+  light:"Light",
+};
+let C = THEMES.dark;
+
+function getThemeMode() {
+  try {
+    const s = localStorage.getItem(THEME_STORAGE_KEY);
+    if (s === "system" || s === "light" || s === "dark") return s;
+  } catch(e) {}
+  return "system";
+}
+
+function resolveTheme(mode) {
+  if (mode === "light" || mode === "dark") return mode;
+  return window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function applyThemeMode(mode) {
+  const resolved = resolveTheme(mode);
+  C = THEMES[resolved] || THEMES.dark;
+  document.documentElement.dataset.theme = resolved;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = C.bg;
+  try { localStorage.setItem(THEME_STORAGE_KEY, mode); } catch(e) {}
+}
+applyThemeMode(getThemeMode());
+
+function ThemeLogoToggle({ themeMode, onToggle }) {
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(themeMode) + 1) % THEME_CYCLE.length];
+  const icon = THEME_ICONS[themeMode];
+  return (
+    <button type="button" onClick={onToggle}
+      aria-label={`Theme: ${THEME_LABELS[themeMode]}. Click for ${THEME_LABELS[next]}.`}
+      title={`${THEME_LABELS[themeMode]} · click → ${THEME_LABELS[next]}`}
+      style={{
+        width:32, height:32, borderRadius:8, flexShrink:0, position:"relative",
+        overflow:"hidden", border:"none", padding:0, cursor:"pointer",
+        background:`linear-gradient(135deg,${C.teal},${C.blue})`,
+        display:"flex", alignItems:"center", justifyContent:"center",
+      }}>
+      <span aria-hidden="true" style={{
+        position:"absolute", inset:0, display:"flex", alignItems:"center",
+        justifyContent:"center", fontSize:themeMode==="system"?18:20, lineHeight:1,
+        opacity:0.28, color:"#fff", pointerEvents:"none", userSelect:"none",
+      }}>{icon}</span>
+      <span aria-hidden="true" style={{position:"relative", zIndex:1, fontSize:16, lineHeight:1}}>⬡</span>
+    </button>
+  );
+}
 
 const STORAGE_KEY = "cursor-calc:v8";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
@@ -558,7 +648,22 @@ function App() {
   const [previousSteps, setPreviousSteps] = useState(null);
   const [saveNotice, setSaveNotice] = useState("");
   const [pricingStatus, setPricingStatus] = useState("Loading Cursor model catalog...");
+  const [themeMode, setThemeMode] = useState(getThemeMode);
+  const [osThemeRev, setOsThemeRev] = useState(0);
   const importRef = useRef(null);
+
+  useEffect(() => {
+    applyThemeMode(themeMode);
+    if (themeMode !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => { applyThemeMode("system"); setOsThemeRev(n => n + 1); };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [themeMode]);
+  const cycleTheme = () => setThemeMode(m => {
+    const i = THEME_CYCLE.indexOf(m);
+    return THEME_CYCLE[(i + 1) % THEME_CYCLE.length];
+  });
 
   const sesInK  = steps.reduce((s,x)=>s+x.inputK, 0);
   const sesCacheReadK = steps.reduce((s,x)=>s+(x.cacheReadK||0), 0);
@@ -791,16 +896,17 @@ function App() {
     {id:"results", icon:"◎", label:"Results"},
   ];
 
+  const effectiveTheme = resolveTheme(themeMode);
+
   return (
-    <div style={{background:C.bg,minHeight:"100%",display:"flex",flexDirection:"column"}}>
+    <div data-theme-effective={effectiveTheme} data-os-rev={osThemeRev}
+      style={{background:C.bg,minHeight:"100%",display:"flex",flexDirection:"column"}}>
 
       {/* ── Sticky Header ── */}
       <div style={{background:C.s1,borderBottom:`1px solid ${C.border}`,
         padding:"12px 14px",position:"sticky",top:0,zIndex:10,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,borderRadius:8,flexShrink:0,
-            background:`linear-gradient(135deg,${C.teal},${C.blue})`,
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⬡</div>
+          <ThemeLogoToggle themeMode={themeMode} onToggle={cycleTheme}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:800,fontSize:14,letterSpacing:-0.3}}>Cursor Calc</div>
             <div style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>
