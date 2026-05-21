@@ -206,8 +206,8 @@ function toPriceNumber(v) {
 }
 
 const NAME_KEYS = ["name", "model", "modelName", "title", "label", "id"];
-const INPUT_KEYS = ["input", "inputPrice", "input_price", "inputCost", "in"];
-const OUTPUT_KEYS = ["output", "outputPrice", "output_price", "outputCost", "out"];
+const INPUT_KEYS = ["input", "inputPrice", "input_price", "inputCost"];
+const OUTPUT_KEYS = ["output", "outputPrice", "output_price", "outputCost"];
 const CACHE_READ_KEYS = [
   "cacheRead", "cache_read", "cachedInput", "cached_input",
   "cacheHit", "cache_hit", "cache",
@@ -273,12 +273,16 @@ function parseModelsFromJsonBlobs(html) {
       if (!m) continue;
       try {
         harvestJsonModels(JSON.parse(m[1]), out);
-      } catch {}
+      } catch {
+        // Not valid JSON (regex picked up code, not data) — skip silently.
+      }
       continue;
     }
     try {
       harvestJsonModels(JSON.parse(body), out);
-    } catch {}
+    } catch {
+      // Script body wasn't pure JSON — common for inline JS — skip silently.
+    }
   }
   return [...out.values()];
 }
