@@ -19,6 +19,18 @@ Live: [d3njo.github.io/cursor-calc](https://d3njo.github.io/cursor-calc)
 
 Open `index.html` directly or serve the repository root with any static file server.
 
+Examples:
+
+```bash
+# Python 3
+python -m http.server 8000
+
+# Node.js (without installing a project dependency)
+npx serve .
+```
+
+Then open `http://localhost:8000` for Python or the URL printed by `npx serve`.
+
 ## Validation
 
 This repository has no package manager, build script, or automated test suite. For
