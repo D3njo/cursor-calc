@@ -347,7 +347,8 @@ function App() {
     setPreviousSteps(null);
   };
   const resetAll = () => {
-    if(!confirm("Alle Einstellungen zurücksetzen?")) return;
+    if(!confirm("Alle Einstellungen und den gespeicherten Standard zurücksetzen?")) return;
+    localStorage.removeItem(USER_DEFAULT_STORAGE_KEY);
     applyConfig(defaultConfig());
     setSaveNotice("");
   };
