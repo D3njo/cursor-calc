@@ -354,7 +354,6 @@ function App() {
   };
   const saveAsDefault = () => {
     localStorage.setItem(USER_DEFAULT_STORAGE_KEY, JSON.stringify(cfg));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
     setSaveNotice("Aktuelle Werte als Standard für neue Sessions gespeichert.");
   };
   const loadSavedDefault = () => {
