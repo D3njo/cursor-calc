@@ -5,9 +5,9 @@ across different models.
 
 ## Features
 
-- **Workflow Steps** – configure input, cached-input, and output tokens per step
+- **Workflow Steps** – configure model, input, cached-input, and output tokens per step
 - **Presets** – start from common workflows like bugfixes, features, and refactors, with a one-step undo
-- **Session Config** – set N sessions, main model, review model, and review cadence
+- **Session Config** – set N sessions, default step model, review model, and review cadence
 - **Model Editor** – add/edit/remove models with custom pricing ($/M tokens)
 - **Persistence & Sharing** – save a custom default, reset, JSON import/export, and share links
 - **Results** – cost breakdown, step-level detail, currency display, and plan coverage
