@@ -261,11 +261,28 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   }, [steps,models,sessions,cModelId,rModelId,revInK,revCacheK,revOutK,reviewEvery,currency]);
 
-  const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>s.id===id?{...s,[f]:f==="cacheK"?Math.min(v,s.inputK):v}:s));
+  const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>{
+    if(s.id!==id) return s;
+    const value = f==="cacheK" ? Math.min(v,s.inputK) : v;
+    return {...s,[f]:value};
+  }));
   const addStep  = () => setSteps(ss=>[...ss,{id:uid("s"),name:"Neuer Step",inputK:30,cacheK:5,outputK:5}]);
   const delStep  = id => { if(steps.length>1) setSteps(ss=>ss.filter(s=>s.id!==id)); };
-  const dupStep  = step => setSteps(ss=>ss.flatMap(s=>s.id===step.id?[s,{...step,id:uid("s"),name:`${step.name} Kopie`}]:[s]));
-  const moveStep = (i,d) => setSteps(ss=>{ const n=[...ss], j=i+d; if(j<0||j>=n.length) return ss; [n[i],n[j]]=[n[j],n[i]]; return n; });
+  const dupStep  = step => setSteps(ss=>{
+    const next = [];
+    ss.forEach(s => {
+      next.push(s);
+      if(s.id===step.id) next.push({...step,id:uid("s"),name:`${step.name} Kopie`});
+    });
+    return next;
+  });
+  const moveStep = (currentIndex,direction) => setSteps(ss=>{
+    const targetIndex = currentIndex + direction;
+    if(targetIndex<0||targetIndex>=ss.length) return ss;
+    const next = [...ss];
+    [next[currentIndex],next[targetIndex]]=[next[targetIndex],next[currentIndex]];
+    return next;
+  });
   const updModel = (id,f,v) => setModels(ms=>ms.map(m=>m.id===id?{...m,[f]:v}:m));
   const delModel = id => {
     if(models.length<=1) return;
