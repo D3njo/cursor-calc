@@ -386,7 +386,7 @@ function App() {
   const totCacheK = sessions * sesCacheK;
   const totOutK = sessions * sesOutK;
   const activeModels = models.filter(m=>activeModelIds.includes(m.id));
-  const selectModels = value => {
+  const getModelsForSelectValue = value => {
     const active = activeModels.length ? activeModels : models.slice(0,1);
     return active.some(m=>m.id===value) ? active : [models.find(m=>m.id===value),...active].filter(Boolean);
   };
@@ -418,14 +418,14 @@ function App() {
   useEffect(() => {
     let ignore = false;
     fetch(CURSOR_PRICING_URL, {cache:"no-store"})
-      .then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${CURSOR_PRICING_URL}: HTTP ${r.status}`)))
       .then(html => {
         if(ignore) return;
         const cursorModels = parseCursorPricing(html);
         if(!cursorModels.length) return;
         setModels(ms=>mergeCursorModels(ms, activeModelIds, cursorModels));
       })
-      .catch(() => {});
+      .catch(() => {}); // Keep the app usable offline or when cursor.com blocks cross-origin docs access.
     return () => { ignore = true; };
   }, []);
 
@@ -589,7 +589,7 @@ function App() {
       <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
         <div style={{background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,padding:10,marginBottom:12,
           fontFamily:C.mono,fontSize:11,color:C.muted}}>
-          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices are refreshed from the official docs.
+          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices are refreshed at startup from the official docs.
         </div>
 
         {/* STEPS */}
@@ -648,7 +648,7 @@ function App() {
                 </div>
                 <div style={{marginBottom:10}}>
                   <Label>Model for this step</Label>
-                  <ModelSelect label={`Model for step ${i+1}`} models={selectModels(modelForStep(step).id)} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
+                  <ModelSelect label={`Model for step ${i+1}`} models={getModelsForSelectValue(modelForStep(step).id)} value={modelForStep(step).id} onChange={v=>updStep(step.id,"modelId",v)}/>
                 </div>
                 <TokSlider label="Input tokens" value={step.inputK} color={C.teal} max={500}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
@@ -681,7 +681,7 @@ function App() {
               </div>
             </div>
             <Label>Default model for new steps</Label>
-            <ModelSelect label="Default model for new steps" models={selectModels(cModelId)} value={cModelId} onChange={setCModelId}/>
+            <ModelSelect label="Default model for new steps" models={getModelsForSelectValue(cModelId)} value={cModelId} onChange={setCModelId}/>
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:cModel.color}}>
               Total cost: {money(totCost)}
             </div>
@@ -689,7 +689,7 @@ function App() {
           <Panel title={reviewEnabled ? `Review Session (${reviewCount}×, every ${reviewEvery} sessions)` : "Review Session (disabled)"}>
             <div style={{marginBottom:14}}>
               <Label>Review model</Label>
-              <ModelSelect label="Review model" models={selectModels(rModelId)} value={rModelId} onChange={setRModelId}/>
+              <ModelSelect label="Review model" models={getModelsForSelectValue(rModelId)} value={rModelId} onChange={setRModelId}/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
               <div>
