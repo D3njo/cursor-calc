@@ -131,7 +131,7 @@ const DEFAULT_MODELS = [
   { id:"gemini25pro", name:"Gemini 2.5 Pro", inputP:1.25, cacheP:0.31, cacheWriteP:0, outputP:10.00, color:"#4ade80", source:"cursor" },
   { id:"gemini25flash", name:"Gemini 2.5 Flash", inputP:0.30, cacheP:0.08, cacheWriteP:0, outputP:2.50, color:"#22d3ee", source:"cursor" },
 ];
-const DEFAULT_ACTIVE_MODEL_IDS = ["c25s","c25f","gpt55","claude46","opus46"];
+const DEFAULT_ACTIVE_MODEL_IDS = ["c25s","c25f","gpt55","claude46","opus46"]; // Keep selectors compact; more models can be enabled in Models.
 const COLOR_PALETTE = ["#00d4aa","#5ba8ff","#ffb347","#c084fc","#f472b6","#4ade80","#22d3ee","#fb7185","#a3e635","#facc15"];
 const PLANS = [
   { id:"hobby", name:"Hobby", defaultBudget:0 },
@@ -241,7 +241,7 @@ function parseCursorPricing(html) {
       const nameIndex = headerNameIndex >= 0 ? headerNameIndex : 0;
       const inputIndex = findHeaderIndex(["input"]);
       const cacheReadIndex = findHeaderIndex(["cache read","cached input","cache hit"]);
-      const cacheWriteIndex = findHeaderIndex(["cache write","cache creation","cache storage"]);
+      const cacheWriteIndex = findHeaderIndex(["cache write","cache fill","cache populate","cache creation","cache storage"]);
       const outputIndex = findHeaderIndex(["output"]);
       if(inputIndex < 0 || outputIndex < 0) return;
       const prices = cells.map(parsePrice);
@@ -423,7 +423,7 @@ function App() {
     // Keep the runtime fetch pinned to Cursor even if the constant is edited later.
     if(cursorPricingUrl.origin !== "https://cursor.com") return;
     fetch(cursorPricingUrl.href, {cache:"no-store"})
-      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${CURSOR_PRICING_URL}: HTTP ${r.status}`)))
+      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${cursorPricingUrl.href}: HTTP ${r.status}`)))
       .then(html => {
         if(ignore) return;
         const cursorModels = parseCursorPricing(html);
@@ -502,7 +502,7 @@ function App() {
     setSaveNotice("Factory defaults restored.");
   };
   const restoreDefaultSteps = () => {
-    setPreviousSteps(steps.map(s=>({...s})));
+    setPreviousSteps(cloneSteps(steps));
     setSteps(cloneSteps(DEFAULT_STEPS));
     setSaveNotice("Default workflow steps restored.");
   };
@@ -594,7 +594,7 @@ function App() {
       <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
         <div style={{background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,padding:10,marginBottom:12,
           fontFamily:C.mono,fontSize:11,color:C.muted}}>
-          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices are refreshed at startup from the official docs.
+          Prices last updated: {PRICING_UPDATED}. When online, Cursor model prices refresh at startup; cached values are used if unavailable.
         </div>
 
         {/* STEPS */}
@@ -734,7 +734,7 @@ function App() {
               Review cost: {reviewEnabled ? `${reviewCount} × ${money(oneRevCost)} = ${money(revCost)}` : "disabled"}
             </div>
             <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
-              Set interval to 0 to skip review sessions. Cache read tokens are subtracted from input and charged at the model's cache read/write prices.
+              Set interval to 0 to skip review sessions. Cache read tokens are subtracted from input; cache write prices, when set, are added to those cached tokens.
             </div>
           </Panel>
           <Panel title="Monthly Budgets (editable)">
