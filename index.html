@@ -144,7 +144,7 @@ const C = {
   mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
 };
 
-const STORAGE_KEY = "cursor-calc:v7";
+const STORAGE_KEY = "cursor-calc:v8";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
 const CURSOR_CATALOG_URL = "./models.json";
 const ESTIMATION_NOTICE =
@@ -171,28 +171,62 @@ const STANDARD_CUSTOM_MODEL = {
   rules:{ notInCursorDocs:true },
 };
 const STANDARD_CUSTOM_MODEL_IDS = new Set([STANDARD_CUSTOM_MODEL.id]);
+/** Stable id from modelIdFromName("Composer 2.5") — default for steps/review (~$0.82 / 5 sessions). */
+const DEFAULT_COMPOSER_MODEL_ID = "cursor-composer-2-5";
+const DEFAULT_COMPOSER_MODEL = {
+  id:DEFAULT_COMPOSER_MODEL_ID,
+  name:"Composer 2.5",
+  inputP:0.5,
+  cacheP:0.2,
+  cacheWriteP:0,
+  outputP:2.5,
+  color:"#00d4aa",
+  source:"cursor",
+};
 const DEFAULT_STEPS = [
-  { id:1, name:"Review / Plan", inputK:6,  cacheReadK:94,  cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:2, name:"Code",          inputK:14, cacheReadK:201, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:3, name:"Review / Plan", inputK:8,  cacheReadK:122, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
-  { id:4, name:"Code",          inputK:15, cacheReadK:219, cacheWriteK:0, outputK:1, modelId:PLACEHOLDER_MODEL_ID },
+  { id:1, name:"Review / Plan", inputK:6,  cacheReadK:94,  cacheWriteK:0, outputK:1, modelId:DEFAULT_COMPOSER_MODEL_ID },
+  { id:2, name:"Code",          inputK:14, cacheReadK:201, cacheWriteK:0, outputK:1, modelId:DEFAULT_COMPOSER_MODEL_ID },
+  { id:3, name:"Review / Plan", inputK:8,  cacheReadK:122, cacheWriteK:0, outputK:1, modelId:DEFAULT_COMPOSER_MODEL_ID },
+  { id:4, name:"Code",          inputK:15, cacheReadK:219, cacheWriteK:0, outputK:1, modelId:DEFAULT_COMPOSER_MODEL_ID },
 ];
 const DEFAULT_MODELS = [
   { id:PLACEHOLDER_MODEL_ID, name:"Loading Cursor models...", inputP:0, cacheP:0, cacheWriteP:0, outputP:0, color:"#5a6a85", source:"placeholder" },
+  {...DEFAULT_COMPOSER_MODEL},
   {...STANDARD_CUSTOM_MODEL},
 ];
-const DEFAULT_ACTIVE_MODEL_IDS = [PLACEHOLDER_MODEL_ID, STANDARD_CUSTOM_MODEL.id];
+const DEFAULT_ACTIVE_MODEL_IDS = [DEFAULT_COMPOSER_MODEL_ID, STANDARD_CUSTOM_MODEL.id];
+/** Cursor catalog models selected on first load (by display name). */
+const DEFAULT_FAVORITE_MODEL_KEYS = new Set([
+  "claude 4 7 opus",
+  "claude 4 6 sonnet",
+  "gpt 5 5",
+  "composer 2 5",
+  "composer 2 5 flash",
+]);
+const isDefaultFavoriteModel = model =>
+  isCursorModel(model) && DEFAULT_FAVORITE_MODEL_KEYS.has(modelKey(model.name));
+const pickDefaultFavoriteIds = models => {
+  const ids = models.filter(m=>!isPlaceholderModel(m) && (isCustomModel(m) || isDefaultFavoriteModel(m))).map(m=>m.id);
+  if(!ids.length) {
+    const first = models.find(m=>!isPlaceholderModel(m));
+    if(first) ids.push(first.id);
+  }
+  return ids;
+};
+const pickDefaultPrimaryModel = models =>
+  models.find(m=>!isPlaceholderModel(m) && modelKey(m.name)==="composer 2 5") ||
+  models.find(m=>!isPlaceholderModel(m));
 const COLOR_PALETTE = ["#00d4aa","#5ba8ff","#ffb347","#c084fc","#f472b6","#4ade80","#22d3ee","#fb7185","#a3e635","#facc15"];
 const PLANS = [
-  { id:"hobby", name:"Hobby (extra)", defaultBudget:0 },
+  { id:"hobby", name:"Extra", defaultBudget:0 },
   { id:"pro",   name:"Pro",   defaultBudget:20 },
   { id:"proPlus", name:"Pro+", defaultBudget:70 },
   { id:"ultra", name:"Ultra", defaultBudget:400 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:15,cacheReadK:5,cacheWriteK:0,outputK:3,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Patch",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
-  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Implement",inputK:50,cacheReadK:25,cacheWriteK:0,outputK:10,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Review",inputK:37,cacheReadK:18,cacheWriteK:0,outputK:5,modelId:PLACEHOLDER_MODEL_ID}] },
-  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:60,cacheReadK:30,cacheWriteK:0,outputK:8,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Plan",inputK:45,cacheReadK:25,cacheWriteK:0,outputK:9,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:95,cacheReadK:45,cacheWriteK:0,outputK:16,modelId:PLACEHOLDER_MODEL_ID},{id:uid("s"),name:"Validate",inputK:55,cacheReadK:25,cacheWriteK:0,outputK:7,modelId:PLACEHOLDER_MODEL_ID}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyze",inputK:15,cacheReadK:5,cacheWriteK:0,outputK:3,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Patch",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:DEFAULT_COMPOSER_MODEL_ID}] },
+  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:25,cacheReadK:10,cacheWriteK:0,outputK:5,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Implement",inputK:50,cacheReadK:25,cacheWriteK:0,outputK:10,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Review",inputK:37,cacheReadK:18,cacheWriteK:0,outputK:5,modelId:DEFAULT_COMPOSER_MODEL_ID}] },
+  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:60,cacheReadK:30,cacheWriteK:0,outputK:8,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Plan",inputK:45,cacheReadK:25,cacheWriteK:0,outputK:9,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Refactor",inputK:95,cacheReadK:45,cacheWriteK:0,outputK:16,modelId:DEFAULT_COMPOSER_MODEL_ID},{id:uid("s"),name:"Validate",inputK:55,cacheReadK:25,cacheWriteK:0,outputK:7,modelId:DEFAULT_COMPOSER_MODEL_ID}] },
 ];
 const USAGE_POOLS = [
   { id:"api", name:"API pool (per model)" },
@@ -212,7 +246,7 @@ const cloneModels = models => models.map(m=>({...m}));
 const defaultPlanBudgets = () => Object.fromEntries(PLANS.map(p=>[p.id,p.defaultBudget]));
 const defaultConfig = () => ({
   steps:cloneSteps(DEFAULT_STEPS),models:cloneModels(DEFAULT_MODELS),activeModelIds:[...DEFAULT_ACTIVE_MODEL_IDS],
-  sessions:5,cModelId:PLACEHOLDER_MODEL_ID,rModelId:PLACEHOLDER_MODEL_ID,
+  sessions:5,cModelId:DEFAULT_COMPOSER_MODEL_ID,rModelId:DEFAULT_COMPOSER_MODEL_ID,
   revInK:10,revCacheReadK:70,revCacheWriteK:0,revOutK:1,reviewEvery:10,
   usagePool:"api",maxMode:false,sessionFastMode:false,fastModeByModelId:{},currency:"USD",planBudgets:defaultPlanBudgets()
 });
@@ -576,19 +610,26 @@ function App() {
           const existingCursorModels = ms.filter(isCursorModel);
           const hadSmallCursorFallback = existingCursorModels.length > 0 && existingCursorModels.length < MIN_EXPECTED_CURSOR_MODELS;
           const next = mergeCursorModels(ms, activeModelIds, cursorModels);
-          const firstAvailable = next.find(m=>!isPlaceholderModel(m));
+          const defaultFavoriteIds = pickDefaultFavoriteIds(next);
+          const primaryModel = pickDefaultPrimaryModel(next);
+          const primaryModelId = primaryModel?.id;
           setActiveModelIds(ids=>{
+            if(hadPlaceholder || hadSmallCursorFallback) return defaultFavoriteIds;
             const existing = new Set(ids.filter(id=>next.some(m=>m.id===id && !isPlaceholderModel(m))));
-            if(hadPlaceholder || hadSmallCursorFallback) next.filter(isCursorModel).forEach(m=>existing.add(m.id));
             next.filter(isCustomModel).forEach(m=>existing.add(m.id));
-            if(!existing.size && firstAvailable) existing.add(firstAvailable.id);
+            if(!existing.size) return defaultFavoriteIds;
             return [...existing];
           });
-          setCModelId(id=>next.some(m=>m.id===id && !isPlaceholderModel(m)) ? id : firstAvailable?.id || id);
-          setRModelId(id=>next.some(m=>m.id===id && !isPlaceholderModel(m)) ? id : firstAvailable?.id || id);
+          const pickDefaultModelId = id=>{
+            if(next.some(m=>m.id===id && !isPlaceholderModel(m))) return id;
+            return primaryModelId || id;
+          };
+          setCModelId(id=>(hadPlaceholder||hadSmallCursorFallback) ? (primaryModelId||id) : pickDefaultModelId(id));
+          setRModelId(id=>(hadPlaceholder||hadSmallCursorFallback) ? (primaryModelId||id) : pickDefaultModelId(id));
           setSteps(ss=>ss.map(step=>{
+            if(hadPlaceholder||hadSmallCursorFallback) return {...step,modelId:primaryModelId||step.modelId};
             if(next.some(m=>m.id===step.modelId && !isPlaceholderModel(m))) return step;
-            return {...step,modelId:firstAvailable?.id || step.modelId};
+            return {...step,modelId:primaryModelId||step.modelId};
           }));
           return next;
         });
@@ -1132,23 +1173,27 @@ function App() {
             {customModels.map(m=>(
               <div key={m.id} style={{background:C.s3,borderRadius:8,padding:12,
                 border:`1px solid ${m.rules?.notInCursorDocs?C.teal+"44":C.border}`,marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                  <span style={{fontFamily:C.mono,fontSize:10,color:C.teal,flexShrink:0}}>Always active</span>
-                  {isStandardCustomModel(m) && (
-                    <span style={{fontFamily:C.mono,fontSize:9,color:C.teal}}>built-in (not in Cursor docs yet)</span>
-                  )}
-                  <ModelRuleBadges rules={m.rules}/>
-                  <input aria-label={`Color for ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
-                    disabled={isStandardCustomModel(m)}
-                    style={{width:28,height:28,border:"none",borderRadius:4,
-                      cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
-                  <input aria-label="Model name" value={m.name} readOnly={isStandardCustomModel(m)}
-                    onChange={e=>updModel(m.id,"name",e.target.value)}
-                    style={{flex:1,background:"transparent",border:"none",color:m.color,
-                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
-                  <button aria-label={`Delete ${m.name}`} disabled={models.length<=1||isStandardCustomModel(m)} onClick={()=>delModel(m.id)}
-                    style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
-                      color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flex:"1 1 180px",minWidth:0}}>
+                    <input aria-label={`Color for ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
+                      disabled={isStandardCustomModel(m)}
+                      style={{width:28,height:28,border:"none",borderRadius:4,
+                        cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
+                    <input aria-label="Model name" value={m.name} readOnly={isStandardCustomModel(m)}
+                      onChange={e=>updModel(m.id,"name",e.target.value)}
+                      style={{flex:1,background:"transparent",border:"none",color:m.color,
+                        fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flex:"1 1 auto",justifyContent:"flex-end"}}>
+                    <span style={{fontFamily:C.mono,fontSize:10,color:C.teal}}>Always active</span>
+                    {isStandardCustomModel(m) && (
+                      <span style={{fontFamily:C.mono,fontSize:9,color:C.teal}}>built-in (not in Cursor docs yet)</span>
+                    )}
+                    <ModelRuleBadges rules={m.rules}/>
+                    <button aria-label={`Delete ${m.name}`} disabled={models.length<=1||isStandardCustomModel(m)} onClick={()=>delModel(m.id)}
+                      style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
+                        color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
+                  </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
                   {[["inputP","Input",C.teal],["cacheP","Cache read",C.muted],["cacheWriteP","Cache write",C.blue],["outputP","Output",C.amber]].map(([f,l,c])=>(
