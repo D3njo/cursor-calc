@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Cursor Calc"/>
+<meta name="theme-color" content="#07090e"/>
+<meta name="description" content="Cursor Token & Kosten Rechner"/>
+<title>Cursor Calc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<script>
+// ── Inline Manifest (kein separates manifest.json nötig) ──────────────────
+const manifestData = {
+  name: "Cursor Token Calculator",
+  short_name: "Cursor Calc",
+  description: "Cursor AI Token & Kosten Rechner",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#07090e",
+  theme_color: "#07090e",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2307090e'/%3E%3Cpolygon points='256,60 420,160 420,352 256,452 92,352 92,160' fill='none' stroke='%2300d4aa' stroke-width='28'/%3E%3Ctext x='256' y='300' text-anchor='middle' font-size='180' font-weight='900' fill='%2300d4aa' font-family='monospace'%3E%E2%AC%A1%3C/text%3E%3C/svg%3E",
+      sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifestData)], {type:"application/manifest+json"});
+const manifestURL  = URL.createObjectURL(manifestBlob);
+const link = document.createElement("link");
+link.rel = "manifest"; link.href = manifestURL;
+document.head.appendChild(link);
+
+// Apple Touch Icon (inline SVG als data URI)
+const appleIcon = document.createElement("link");
+appleIcon.rel = "apple-touch-icon";
+appleIcon.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2307090e'/%3E%3Cpolygon points='256,60 420,160 420,352 256,452 92,352 92,160' fill='none' stroke='%2300d4aa' stroke-width='28'/%3E%3Ctext x='256' y='300' text-anchor='middle' font-size='180' font-weight='900' fill='%2300d4aa' font-family='monospace'%3E%E2%AC%A1%3C/text%3E%3C/svg%3E";
+document.head.appendChild(appleIcon);
+
+// ── Inline Service Worker (für Offline + Installierbarkeit) ───────────────
+const swCode = `
+const CACHE = 'cursor-calc-v1';
+const ASSETS = [
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js',
+];
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{}))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(clients.claim());
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return res;
+    }).catch(() => new Response('', {status:503})))
+  );
+});
+`;
+if ('serviceWorker' in navigator) {
+  const swBlob = new Blob([swCode], {type:'text/javascript'});
+  const swURL  = URL.createObjectURL(swBlob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swURL, {scope:'/'})
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body,#root{height:100%;}
+body{background:#07090e;color:#c8d6ef;font-family:'Manrope',sans-serif;font-size:13px;
+  overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#1c2336;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;cursor:pointer;background:currentColor;box-shadow:0 0 0 3px rgba(0,0,0,.4);}
+input[type=number]{-moz-appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+select{outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;}
+input:focus,select:focus{outline:1px solid #2a3a56;}
+button{font-family:'Manrope',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+button:active{opacity:0.6;transform:scale(0.97);}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:#1c2336;border-radius:2px;}
+
+/* Install banner */
+#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:linear-gradient(135deg,#0d1018,#111520);
+  border-top:1px solid #1c2336;padding:14px 16px;
+  align-items:center;gap:12px;animation:slideUp .3s ease;}
+#install-banner.show{display:flex;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Install Banner -->
+<div id="install-banner">
+  <div style="font-size:22px">⬡</div>
+  <div style="flex:1">
+    <div style="font-weight:800;font-size:13px;color:#c8d6ef">Cursor Calc installieren</div>
+    <div style="font-size:11px;color:#5a6a85;font-family:'IBM Plex Mono',monospace">Am Homescreen hinzufügen</div>
+  </div>
+  <button id="install-btn" style="background:#00d4aa22;border:1px solid #00d4aa;border-radius:8px;
+    color:#00d4aa;font-weight:700;font-size:13px;padding:8px 16px;">Installieren</button>
+  <button id="dismiss-btn" style="background:none;border:none;color:#5a6a85;font-size:20px;padding:4px 8px;">✕</button>
+</div>
+
+<script>
+// PWA Install Prompt
+let deferredPrompt;
+const banner = document.getElementById('install-banner');
+const installBtn = document.getElementById('install-btn');
+const dismissBtn = document.getElementById('dismiss-btn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  banner.classList.add('show');
+});
+installBtn.addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome} = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.classList.remove('show');
+});
+dismissBtn.addEventListener('click', () => banner.classList.remove('show'));
+window.addEventListener('appinstalled', () => banner.classList.remove('show'));
+</script>
+
+<script type="text/babel">
+const { useState } = React;
+
+const C = {
+  bg:"#07090e", s1:"#0d1018", s2:"#111520", s3:"#161c2a",
+  border:"#1c2336", border2:"#252f45",
+  teal:"#00d4aa", amber:"#ffb347", purple:"#b39ddb",
+  red:"#ff6b6b", blue:"#5ba8ff", green:"#4ade80",
+  text:"#c8d6ef", muted:"#5a6a85", dim:"#2c3a52",
+  mono:"'IBM Plex Mono',monospace", sans:"'Manrope',sans-serif",
+};
+
+let _id = 20;
+const uid = () => `m${_id++}`;
+
+const DEFAULT_STEPS = [
+  { id:1, name:"Review / Plan", inputK:28, outputK:4  },
+  { id:2, name:"Code",          inputK:67, outputK:8  },
+  { id:3, name:"Review / Plan", inputK:45, outputK:4  },
+  { id:4, name:"Code",          inputK:80, outputK:8  },
+];
+const DEFAULT_MODELS = [
+  { id:"c25s",  name:"Composer 2.5",      inputP:0.50, cacheP:0.20, outputP:2.50,  color:"#00d4aa" },
+  { id:"c25f",  name:"Composer 2.5 Fast", inputP:3.00, cacheP:0.50, outputP:15.00, color:"#5ba8ff" },
+  { id:"gpt55", name:"GPT-5.5",           inputP:5.00, cacheP:0.50, outputP:30.00, color:"#ffb347" },
+];
+const PLANS = [
+  { name:"Pro",   price:20  },
+  { name:"Pro+",  price:60  },
+  { name:"Ultra", price:200 },
+];
+
+const fmtTok = k => k >= 1000 ? `${(k/1000).toFixed(1)}M` : `${k}k`;
+const fmtUSD = n => n < 0.005 ? "<$0.01" : `$${n.toFixed(2)}`;
+const calcCost = (m, inK, outK) => (inK/1000)*m.inputP + (outK/1000)*m.outputP;
+
+function Panel({ title, badge, children }) {
+  return (
+    <div style={{background:C.s1,borderRadius:10,border:`1px solid ${C.border}`,overflow:"hidden",marginBottom:12}}>
+      <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,
+        display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4}}>
+        <span style={{fontWeight:800,fontSize:12,color:C.text}}>{title}</span>
+        {badge && <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,background:C.s3,padding:"2px 8px",borderRadius:4}}>{badge}</span>}
+      </div>
+      <div style={{padding:14}}>{children}</div>
+    </div>
+  );
+}
+
+function Label({children}) {
+  return <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.3}}>{children}</div>;
+}
+
+function TokSlider({label, value, onChange, color, max}) {
+  return (
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <span style={{fontSize:11,color:C.muted,fontFamily:C.mono}}>{label}</span>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <input type="number" value={value} min={1} max={max} step={1}
+            onChange={e=>onChange(Math.max(1,Math.round(parseFloat(e.target.value)||1)))}
+            style={{width:64,background:C.s3,border:`1px solid ${C.border2}`,
+              borderRadius:4,color,fontFamily:C.mono,fontSize:13,padding:"4px 6px",textAlign:"right"}}/>
+          <span style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>k</span>
+        </div>
+      </div>
+      <input type="range" min={1} max={max} step={1} value={value}
+        onChange={e=>onChange(Number(e.target.value))}
+        style={{accentColor:color,color}}/>
+    </div>
+  );
+}
+
+function ModelSelect({models, value, onChange}) {
+  return (
+    <div style={{position:"relative"}}>
+      <select value={value} onChange={e=>onChange(e.target.value)}
+        style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
+          borderRadius:5,color:C.text,fontFamily:C.sans,fontSize:13,padding:"9px 30px 9px 10px"}}>
+        {models.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+      </select>
+      <div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:C.muted,pointerEvents:"none"}}>▾</div>
+    </div>
+  );
+}
+
+function StatCard({label, value, sub, color, big}) {
+  return (
+    <div style={{background:C.s2,borderRadius:8,padding:"11px 12px",border:`1px solid ${C.border}`}}>
+      <div style={{fontSize:10,color:C.muted,marginBottom:3}}>{label}</div>
+      <div style={{fontFamily:C.mono,fontWeight:big?700:600,fontSize:big?18:14,color,lineHeight:1.2}}>{value}</div>
+      {sub && <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginTop:3}}>{sub}</div>}
+    </div>
+  );
+}
+
+function App() {
+  const [steps,    setSteps]    = useState(DEFAULT_STEPS);
+  const [models,   setModels]   = useState(DEFAULT_MODELS);
+  const [sessions, setSessions] = useState(9);
+  const [cModelId, setCModelId] = useState("c25f");
+  const [rModelId, setRModelId] = useState("gpt55");
+  const [revInK,   setRevInK]   = useState(80);
+  const [revOutK,  setRevOutK]  = useState(12);
+  const [addOpen,  setAddOpen]  = useState(false);
+  const [draft,    setDraft]    = useState({name:"",inputP:1.00,cacheP:0.10,outputP:5.00,color:"#c084fc"});
+  const [tab,      setTab]      = useState("steps");
+
+  const sesInK  = steps.reduce((s,x)=>s+x.inputK, 0);
+  const sesOutK = steps.reduce((s,x)=>s+x.outputK, 0);
+  const totInK  = sessions * sesInK;
+  const totOutK = sessions * sesOutK;
+  const cModel  = models.find(m=>m.id===cModelId) || models[0];
+  const rModel  = models.find(m=>m.id===rModelId) || models[0];
+  const sesCost = calcCost(cModel, sesInK, sesOutK);
+  const totCost = calcCost(cModel, totInK, totOutK);
+  const revCost = calcCost(rModel, revInK, revOutK);
+  const grand   = totCost + revCost;
+  const pct     = n => Math.min(n/grand*100,100).toFixed(0)+"%";
+
+  const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>s.id===id?{...s,[f]:v}:s));
+  const addStep  = () => setSteps(ss=>[...ss,{id:uid(),name:"Neuer Step",inputK:30,outputK:5}]);
+  const delStep  = id => { if(steps.length>1) setSteps(ss=>ss.filter(s=>s.id!==id)); };
+  const updModel = (id,f,v) => setModels(ms=>ms.map(m=>m.id===id?{...m,[f]:v}:m));
+  const delModel = id => {
+    setModels(ms=>ms.filter(m=>m.id!==id));
+    const fb = models.find(m=>m.id!==id)?.id||"";
+    if(cModelId===id) setCModelId(fb);
+    if(rModelId===id) setRModelId(fb);
+  };
+  const commitAdd = () => {
+    if(!draft.name.trim()) return;
+    setModels(ms=>[...ms,{...draft,id:uid()}]);
+    setDraft({name:"",inputP:1.00,cacheP:0.10,outputP:5.00,color:"#c084fc"});
+    setAddOpen(false);
+  };
+
+  const tabs = [
+    {id:"steps",   icon:"⬡", label:"Steps"},
+    {id:"config",  icon:"⚙", label:"Config"},
+    {id:"models",  icon:"◈", label:"Modelle"},
+    {id:"results", icon:"◎", label:"Ergebnis"},
+  ];
+
+  return (
+    <div style={{background:C.bg,minHeight:"100%",display:"flex",flexDirection:"column"}}>
+
+      {/* ── Sticky Header ── */}
+      <div style={{background:C.s1,borderBottom:`1px solid ${C.border}`,
+        padding:"12px 14px",position:"sticky",top:0,zIndex:10,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:32,height:32,borderRadius:8,flexShrink:0,
+            background:`linear-gradient(135deg,${C.teal},${C.blue})`,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⬡</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:800,fontSize:14,letterSpacing:-0.3}}>Cursor Calc</div>
+            <div style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>
+              {sessions} Sessions · {fmtTok(sesInK+sesOutK)}/Session
+            </div>
+          </div>
+          <div style={{fontFamily:C.mono,fontWeight:800,fontSize:20,color:C.purple,flexShrink:0}}>
+            {fmtUSD(grand)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab Bar ── */}
+      <div style={{display:"flex",background:C.s1,borderBottom:`1px solid ${C.border}`,
+        position:"sticky",top:56,zIndex:9,flexShrink:0}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            flex:1,padding:"11px 0",background:"transparent",border:"none",
+            borderBottom:tab===t.id?`2px solid ${C.teal}`:`2px solid transparent`,
+            color:tab===t.id?C.teal:C.muted,fontWeight:700,fontSize:11,
+            display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <span style={{fontSize:14}}>{t.icon}</span>
+            <span style={{letterSpacing:0.3}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Content ── */}
+      <div style={{flex:1,overflowY:"auto",padding:12,maxWidth:700,width:"100%",margin:"0 auto"}}>
+
+        {/* STEPS */}
+        {tab==="steps" && (
+          <Panel title="Workflow Steps"
+            badge={`${fmtTok(sesInK)} in · ${fmtTok(sesOutK)} out · ${fmtUSD(sesCost)}/Session`}>
+            {steps.map((step,i)=>(
+              <div key={step.id} style={{background:C.s3,borderRadius:8,padding:12,
+                border:`1px solid ${C.border}`,marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <span style={{fontFamily:C.mono,fontSize:11,color:C.muted,
+                    background:C.s2,borderRadius:4,padding:"2px 8px",flexShrink:0}}>{i+1}</span>
+                  <input value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
+                    style={{flex:1,background:"transparent",border:"none",color:C.text,
+                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
+                  <button onClick={()=>delStep(step.id)}
+                    style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
+                      color:C.red,fontSize:14,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
+                </div>
+                <TokSlider label="Input-Tokens" value={step.inputK} color={C.teal} max={500}
+                  onChange={v=>updStep(step.id,"inputK",v)}/>
+                <TokSlider label="Output-Tokens" value={step.outputK} color={C.amber} max={100}
+                  onChange={v=>updStep(step.id,"outputK",v)}/>
+                <div style={{fontFamily:C.mono,fontSize:11,color:C.blue,marginTop:2}}>
+                  ⟹ {fmtUSD(calcCost(cModel,step.inputK,step.outputK))} mit {cModel.name}
+                </div>
+              </div>
+            ))}
+            <button onClick={addStep} style={{width:"100%",background:"transparent",
+              border:`1px dashed ${C.border2}`,borderRadius:8,color:C.muted,
+              fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Step hinzufügen</button>
+          </Panel>
+        )}
+
+        {/* CONFIG */}
+        {tab==="config" && (<>
+          <Panel title="Session-Konfiguration">
+            <div style={{marginBottom:18}}>
+              <Label>Composer Sessions (N)</Label>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <input type="range" min={1} max={50} value={sessions}
+                  onChange={e=>setSessions(Number(e.target.value))}
+                  style={{flex:1,accentColor:C.teal,color:C.teal}}/>
+                <span style={{fontFamily:C.mono,fontWeight:800,fontSize:24,
+                  color:C.teal,minWidth:36,textAlign:"right"}}>{sessions}</span>
+              </div>
+            </div>
+            <Label>Modell für Sessions</Label>
+            <ModelSelect models={models} value={cModelId} onChange={setCModelId}/>
+            <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:cModel.color}}>
+              Kosten gesamt: {fmtUSD(totCost)}
+            </div>
+          </Panel>
+          <Panel title="Review-Session (jede 10. Session)">
+            <div style={{marginBottom:14}}>
+              <Label>Review-Modell</Label>
+              <ModelSelect models={models} value={rModelId} onChange={setRModelId}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <Label>Input-Tokens (k)</Label>
+                <input type="number" value={revInK} min={1} max={2000} step={1}
+                  onChange={e=>setRevInK(Math.max(1,parseInt(e.target.value)||1))}
+                  style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
+                    borderRadius:4,color:C.teal,fontFamily:C.mono,fontSize:15,
+                    padding:"9px 10px",textAlign:"right"}}/>
+              </div>
+              <div>
+                <Label>Output-Tokens (k)</Label>
+                <input type="number" value={revOutK} min={1} max={500} step={1}
+                  onChange={e=>setRevOutK(Math.max(1,parseInt(e.target.value)||1))}
+                  style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
+                    borderRadius:4,color:C.amber,fontFamily:C.mono,fontSize:15,
+                    padding:"9px 10px",textAlign:"right"}}/>
+              </div>
+            </div>
+            <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:rModel.color}}>
+              Review-Kosten: {fmtUSD(revCost)}
+            </div>
+          </Panel>
+        </>)}
+
+        {/* MODELS */}
+        {tab==="models" && (
+          <Panel title="Modelle & Preise" badge="USD / Million Tokens">
+            <div style={{marginBottom:16}}>
+              <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,marginBottom:8}}>
+                KOSTEN-VORSCHAU ({sessions} SESSIONS)
+              </div>
+              {models.map(m=>{
+                const total=calcCost(m,totInK,totOutK);
+                const maxC=Math.max(...models.map(x=>calcCost(x,totInK,totOutK)));
+                return (
+                  <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                    <span style={{fontFamily:C.mono,fontSize:11,color:m.color,
+                      width:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>
+                      {m.name}
+                    </span>
+                    <div style={{flex:1,height:6,background:C.border,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${maxC>0?(total/maxC)*100:0}%`,
+                        background:m.color,borderRadius:3,transition:"width 0.25s"}}/>
+                    </div>
+                    <span style={{fontFamily:C.mono,fontSize:11,color:C.text,
+                      minWidth:55,textAlign:"right"}}>{fmtUSD(total)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {models.map(m=>(
+              <div key={m.id} style={{background:C.s3,borderRadius:8,padding:12,
+                border:`1px solid ${C.border}`,marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <input type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
+                    style={{width:28,height:28,border:"none",borderRadius:4,
+                      cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
+                  <input value={m.name} onChange={e=>updModel(m.id,"name",e.target.value)}
+                    style={{flex:1,background:"transparent",border:"none",color:m.color,
+                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
+                  <button onClick={()=>delModel(m.id)}
+                    style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
+                      color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  {[["inputP","Input",C.teal],["cacheP","Cache",C.muted],["outputP","Output",C.amber]].map(([f,l,c])=>(
+                    <div key={f}>
+                      <Label>{l} $/M</Label>
+                      <input type="number" value={m[f]} min={0} max={9999} step={0.01}
+                        onChange={e=>updModel(m.id,f,parseFloat(e.target.value)||0)}
+                        style={{width:"100%",background:C.s2,border:`1px solid ${C.border2}`,
+                          borderRadius:4,color:c,fontFamily:C.mono,fontSize:13,
+                          padding:"7px 8px",textAlign:"right"}}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {addOpen ? (
+              <div style={{background:C.s3,borderRadius:8,padding:12,border:`1px solid ${C.border2}`}}>
+                <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:10,letterSpacing:0.3}}>
+                  NEUES MODELL
+                </div>
+                <div style={{marginBottom:10}}>
+                  <Label>Name</Label>
+                  <input value={draft.name} placeholder="z.B. Claude 4.7 Opus"
+                    onChange={e=>setDraft(d=>({...d,name:e.target.value}))}
+                    style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
+                      borderRadius:4,color:C.text,fontFamily:C.sans,fontSize:13,padding:"9px 10px"}}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                  {[["inputP","Input"],["cacheP","Cache-Read"],["outputP","Output"]].map(([f,l])=>(
+                    <div key={f}>
+                      <Label>{l} $/M</Label>
+                      <input type="number" value={draft[f]} min={0} step={0.01}
+                        onChange={e=>setDraft(d=>({...d,[f]:parseFloat(e.target.value)||0}))}
+                        style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
+                          borderRadius:4,color:C.text,fontFamily:C.mono,fontSize:13,
+                          padding:"7px 8px",textAlign:"right"}}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                  <Label>Farbe:</Label>
+                  <input type="color" value={draft.color}
+                    onChange={e=>setDraft(d=>({...d,color:e.target.value}))}
+                    style={{width:44,height:36,border:`1px solid ${C.border2}`,
+                      borderRadius:4,cursor:"pointer",padding:2,background:C.s1}}/>
+                  <span style={{fontFamily:C.mono,fontSize:11,color:draft.color}}>{draft.color}</span>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={commitAdd} style={{flex:1,background:`${C.teal}22`,
+                    border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,
+                    fontWeight:700,fontSize:13,padding:"11px 0"}}>Hinzufügen</button>
+                  <button onClick={()=>setAddOpen(false)} style={{background:"transparent",
+                    border:`1px solid ${C.border2}`,borderRadius:7,color:C.muted,
+                    fontWeight:600,fontSize:13,padding:"11px 16px"}}>Abbrechen</button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={()=>setAddOpen(true)} style={{width:"100%",background:"transparent",
+                border:`1px dashed ${C.border2}`,borderRadius:8,color:C.muted,
+                fontWeight:700,fontSize:13,padding:"13px 0"}}>+ Modell hinzufügen</button>
+            )}
+          </Panel>
+        )}
+
+        {/* RESULTS */}
+        {tab==="results" && (<>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+            <StatCard label="Input / Session"  value={fmtTok(sesInK)}  color={C.teal}  sub={`×${sessions} = ${fmtTok(totInK)}`}/>
+            <StatCard label="Output / Session" value={fmtTok(sesOutK)} color={C.amber} sub={`×${sessions} = ${fmtTok(totOutK)}`}/>
+            <StatCard label={`${sessions}× Composer`} value={fmtUSD(totCost)} color={cModel.color} sub={cModel.name}/>
+            <StatCard label="1× Review"        value={fmtUSD(revCost)} color={rModel.color} sub={rModel.name}/>
+          </div>
+
+          <div style={{background:C.s2,borderRadius:10,padding:"18px 14px",
+            border:`1px solid ${C.border2}`,marginBottom:12,textAlign:"center"}}>
+            <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:6}}>
+              ∑ GESAMTKOSTEN · {sessions+1} SESSIONS
+            </div>
+            <div style={{fontFamily:C.mono,fontWeight:800,fontSize:36,color:C.purple}}>
+              {fmtUSD(grand)}
+            </div>
+            <div style={{fontFamily:C.mono,fontSize:11,color:C.muted,marginTop:6}}>
+              {fmtTok(totInK+revInK)} Input · {fmtTok(totOutK+revOutK)} Output
+            </div>
+          </div>
+
+          <Panel title="Aufschlüsselung">
+            {[
+              {label:`1 Session (${cModel.name})`,inK:sesInK,outK:sesOutK,m:cModel,cost:sesCost},
+              {label:`${sessions}× Sessions`,inK:totInK,outK:totOutK,m:cModel,cost:totCost,bold:true},
+              {label:`1× Review`,inK:revInK,outK:revOutK,m:rModel,cost:revCost,bold:true},
+            ].map((r,i)=>(
+              <div key={i} style={{padding:"11px 0",borderBottom:`1px solid ${C.border}`,
+                display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+                <div style={{fontWeight:r.bold?700:400,color:r.bold?r.m.color:C.muted,fontSize:12}}>
+                  {r.label}
+                </div>
+                <div style={{display:"flex",gap:10,fontFamily:C.mono,fontSize:12}}>
+                  <span style={{color:C.teal}}>{fmtTok(r.inK)}</span>
+                  <span style={{color:C.amber}}>{fmtTok(r.outK)}</span>
+                  <span style={{color:C.text,fontWeight:700}}>{fmtUSD(r.cost)}</span>
+                  <span style={{color:C.muted,minWidth:36,textAlign:"right"}}>{pct(r.cost)}</span>
+                </div>
+              </div>
+            ))}
+            <div style={{paddingTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontWeight:800,color:C.text}}>∑ Durchgang</span>
+              <span style={{fontFamily:C.mono,fontWeight:800,fontSize:18,color:C.purple}}>{fmtUSD(grand)}</span>
+            </div>
+          </Panel>
+
+          <Panel title="Step-Breakdown">
+            {steps.map((s,i)=>(
+              <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                padding:"9px 10px",background:C.s3,borderRadius:7,border:`1px solid ${C.border}`,marginBottom:7}}>
+                <div>
+                  <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginRight:8}}>{i+1}</span>
+                  <span style={{fontWeight:700,fontSize:12}}>{s.name}</span>
+                </div>
+                <div style={{display:"flex",gap:8,fontFamily:C.mono,fontSize:12}}>
+                  <span style={{color:C.teal}}>{fmtTok(s.inputK)}</span>
+                  <span style={{color:C.amber}}>{fmtTok(s.outputK)}</span>
+                  <span style={{color:C.blue}}>{fmtUSD(calcCost(cModel,s.inputK,s.outputK))}</span>
+                </div>
+              </div>
+            ))}
+          </Panel>
+
+          <Panel title="Plan-Abdeckung / Monat">
+            {PLANS.map(plan=>{
+              const cycles=Math.floor(plan.price/grand);
+              const barPct=Math.min((grand/plan.price)*100,100);
+              const ok=grand<=plan.price;
+              return (
+                <div key={plan.name} style={{background:C.s3,borderRadius:8,padding:"12px 13px",
+                  border:`1px solid ${ok?C.teal+"44":C.border}`,marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:9}}>
+                    <span style={{fontWeight:800,fontSize:13}}>{plan.name}</span>
+                    <span style={{fontFamily:C.mono,fontSize:12,color:C.muted}}>${plan.price}/Mo</span>
+                  </div>
+                  <div style={{height:6,background:C.border,borderRadius:3,marginBottom:9,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${barPct}%`,
+                      background:ok?C.green:C.red,borderRadius:3,transition:"width 0.3s"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                    <span style={{fontFamily:C.mono,fontWeight:700,color:ok?C.green:C.red}}>
+                      ~{cycles}× Durchgänge/Mo
+                    </span>
+                    <span style={{fontFamily:C.mono,color:C.muted}}>
+                      {Math.min(barPct,100).toFixed(0)}% verbraucht
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </Panel>
+        </>)}
+
+        <div style={{height:80}}/>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
