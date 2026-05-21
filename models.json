@@ -1,0 +1,17 @@
+{
+  "updatedAt": "2026-05-21T00:00:00.000Z",
+  "source": "https://cursor.com/docs/models-and-pricing",
+  "note": "Seeded from the Cursor pricing page. The 'Update Cursor models' GitHub Action refreshes this file daily — do not hand-edit unless you also disable the workflow. Add private/custom models via the in-app Model Editor, not here.",
+  "models": [
+    { "name": "Claude 4 Sonnet",            "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
+    { "name": "Claude 4 Sonnet 1M",         "inputP": 6,  "cacheP": 0.6, "cacheWriteP": 7.5,  "outputP": 22.5 },
+    { "name": "Claude 4.5 Haiku",           "inputP": 1,  "cacheP": 0.1, "cacheWriteP": 1.25, "outputP": 5 },
+    { "name": "Claude 4.5 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
+    { "name": "Claude 4.5 Sonnet",          "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
+    { "name": "Claude 4.6 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
+    { "name": "Claude 4.6 Opus (Fast mode)","inputP": 30, "cacheP": 3,   "cacheWriteP": 37.5, "outputP": 150 },
+    { "name": "Claude 4.6 Sonnet",          "inputP": 3,  "cacheP": 0.3, "cacheWriteP": 3.75, "outputP": 15 },
+    { "name": "Claude 4.7 Opus",            "inputP": 5,  "cacheP": 0.5, "cacheWriteP": 6.25, "outputP": 25 },
+    { "name": "Claude Opus 4.7 (fast mode)","inputP": 30, "cacheP": 3,   "cacheWriteP": 37.5, "outputP": 150 }
+  ]
+}

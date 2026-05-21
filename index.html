@@ -111,8 +111,12 @@ const C = {
 
 const STORAGE_KEY = "cursor-calc:v4";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
-const CURSOR_PRICING_URL = "https://cursor.com/docs/models-and-pricing";
-const PRICING_UPDATED = "Loaded from cursor.com at startup";
+// Catalog of Cursor models is shipped as a same-origin JSON file refreshed
+// daily by the `Update Cursor models` GitHub Action (scripts/update-models.mjs).
+// This avoids the CORS wall on cursor.com and means the calculator works
+// offline once the SW has cached the file.
+const CURSOR_CATALOG_URL = "./models.json";
+const PRICING_UPDATED = "Loaded from bundled catalog at startup";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
@@ -158,7 +162,6 @@ const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-
 const MAX_MODEL_ID_SLUG_LENGTH = 48;
 const MIN_VALID_MODEL_KEY_LENGTH = 2;
 const MIN_EXPECTED_CURSOR_MODELS = 10;
-const INVALID_MODEL_KEY_PARTS = ["pricing","token"];
 const modelIdFromName = name => {
   const slug = modelKey(name).replace(/\s+/g,"-").slice(0,MAX_MODEL_ID_SLUG_LENGTH);
   return slug ? `cursor-${slug}` : uid("cursor-m");
@@ -166,11 +169,15 @@ const modelIdFromName = name => {
 const isCustomModel = model => model?.source === "custom";
 const isCursorModel = model => model?.source === "cursor";
 const isPlaceholderModel = model => model?.source === "placeholder";
-const CACHE_READ_HEADERS = ["cache read","cached input","cache hit","cache"];
-const CACHE_WRITE_HEADERS = ["cache write","cache fill","cache populate","cache creation","cache storage"];
-// Fallback parser for text fragments like: Model name $input/M $cache/M $output/M.
 const INVALID_MODEL_KEYS = new Set(["model","name","input","output","price"]);
-const TEXT_PRICE_ROW_RE = /([^$\n]{2,90}?)\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?(?:\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?)?(?:\s+\$\s*([0-9]+(?:[.,][0-9]+)?)(?:\s*\/\s*M(?: tokens?)?)?)?/gi;
+const INVALID_MODEL_KEY_PARTS = ["pricing","token"];
+const isValidCatalogName = name => {
+  const key = modelKey(name);
+  if(!key || key.length < MIN_VALID_MODEL_KEY_LENGTH) return false;
+  if(INVALID_MODEL_KEYS.has(key)) return false;
+  if(INVALID_MODEL_KEY_PARTS.some(part=>key.includes(part))) return false;
+  return true;
+};
 const clampReviewInterval = (value, fallback=0) => {
   const parsed = parseInt(value);
   return Number.isFinite(parsed) ? Math.min(100,Math.max(0,parsed)) : fallback;
@@ -229,25 +236,16 @@ function loadConfig() {
     return readStoredConfig(USER_DEFAULT_STORAGE_KEY) || readStoredConfig(STORAGE_KEY) || defaultConfig();
   } catch(e) { return defaultConfig(); }
 }
-function stripCellHtml(value) {
-  const doc = new DOMParser().parseFromString(value, "text/html");
-  return doc.body.textContent.replace(/\s+/g," ").trim();
-}
-function parsePrice(value) {
-  const normalized = String(value||"").replace(/,/g,".");
-  const match = normalized.match(/\$?\s*([0-9]+(?:\.[0-9]+)?)/);
-  return match ? Number(match[1]) : 0;
-}
-function parseCursorPricing(html) {
-  const parsedByKey = new Map();
-  const addParsedModel = (model, index=parsedByKey.size) => {
-    const name = normalizeModelName(model.name);
-    const key = modelKey(name);
-    if(!key || key.length < MIN_VALID_MODEL_KEY_LENGTH || INVALID_MODEL_KEYS.has(key) || INVALID_MODEL_KEY_PARTS.some(part=>key.includes(part))) return;
+function parseCatalogModels(payload) {
+  const list = Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : [];
+  const byKey = new Map();
+  list.forEach((model, index) => {
+    const name = normalizeModelName(model?.name);
+    if(!isValidCatalogName(name)) return;
     const inputP = Number(model.inputP)||0;
     const outputP = Number(model.outputP)||0;
     if(!inputP || !outputP) return;
-    parsedByKey.set(key, {
+    byKey.set(modelKey(name), {
       id:modelIdFromName(name),
       name,
       inputP,
@@ -257,64 +255,8 @@ function parseCursorPricing(html) {
       color:COLOR_PALETTE[index%COLOR_PALETTE.length],
       source:"cursor"
     });
-  };
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  [...doc.querySelectorAll("table")].forEach(table => {
-    const explicitHeaders = [...table.querySelectorAll("thead th")].map(th=>stripCellHtml(th.innerHTML).toLowerCase());
-    const firstRowHeaders = !explicitHeaders.length ? [...(table.querySelector("tr")?.children||[])].map(cell=>cell.textContent.replace(/\s+/g," ").trim().toLowerCase()) : [];
-    const headers = explicitHeaders.length ? explicitHeaders : firstRowHeaders;
-    const findHeaderIndex = words => headers.findIndex(h=>words.some(w=>h.includes(w)));
-    const nameIndex = Math.max(findHeaderIndex(["model","name"]), 0);
-    const inputIndex = findHeaderIndex(["input"]);
-    const cacheReadIndex = findHeaderIndex(CACHE_READ_HEADERS);
-    const cacheWriteIndex = findHeaderIndex(CACHE_WRITE_HEADERS);
-    const outputIndex = findHeaderIndex(["output"]);
-    [...table.querySelectorAll("tr")].forEach((row,rowIndex) => {
-      const cells = [...row.children].map(cell=>cell.textContent.replace(/\s+/g," ").trim()).filter(Boolean);
-      if(cells.length < 3 || (!explicitHeaders.length && rowIndex === 0)) return;
-      const prices = cells.map(parsePrice);
-      if(inputIndex >= 0 && outputIndex >= 0) {
-        addParsedModel({
-          name:cells[nameIndex],
-          inputP:prices[inputIndex],
-          cacheP:cacheReadIndex >= 0 ? prices[cacheReadIndex] : 0,
-          cacheWriteP:cacheWriteIndex >= 0 ? prices[cacheWriteIndex] : 0,
-          outputP:prices[outputIndex]
-        });
-        return;
-      }
-      const priceCells = cells.map((cell,i)=>({cell,i,price:prices[i]})).filter(x=>x.price>0);
-      if(priceCells.length >= 2) {
-        addParsedModel({
-          name:cells.find((cell,i)=>i!==priceCells[0].i && !parsePrice(cell)) || cells[0],
-          inputP:priceCells[0].price,
-          cacheP:priceCells.length >= 3 ? priceCells[1].price : 0,
-          outputP:priceCells[priceCells.length-1].price
-        });
-      }
-    });
   });
-  if(parsedByKey.size) return [...parsedByKey.values()];
-  const text = html
-    .replace(/<\/(tr|p|li|div|h[1-6])>/gi,"\n")
-    .replace(/<[^>]+>/g," ")
-    .replace(/\\u0024/g,"$")
-    .replace(/\s+\n/g,"\n")
-    .replace(/[ \t]+/g," ");
-  for (const line of text.split(/\n+/)) {
-    for (const match of line.matchAll(TEXT_PRICE_ROW_RE)) {
-    const [,rawName,inputPrice,secondPrice,thirdPrice,fourthPrice] = match;
-    const name = rawName.replace(/(?:Input|Cached input|Cache read|Output|Price).*$/i,"").trim();
-    addParsedModel({
-      name,
-      inputP:parsePrice(inputPrice),
-      cacheP:thirdPrice ? parsePrice(secondPrice) : 0,
-      cacheWriteP:fourthPrice ? parsePrice(thirdPrice) : 0,
-      outputP:parsePrice(fourthPrice || thirdPrice || secondPrice)
-    });
-    }
-  }
-  return [...parsedByKey.values()];
+  return [...byKey.values()];
 }
 function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
   if(!cursorModels.length) return currentModels;
@@ -474,17 +416,14 @@ function App() {
 
   useEffect(() => {
     let ignore = false;
-    const cursorPricingUrl = new URL(CURSOR_PRICING_URL);
-    // Keep the runtime fetch pinned to Cursor even if the URL is edited later.
-    if(cursorPricingUrl.origin !== "https://cursor.com") return;
     setPricingStatus("Loading Cursor model catalog...");
-    fetch(cursorPricingUrl.href, {cache:"no-store"})
-      .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${cursorPricingUrl.href}: HTTP ${r.status}; using stored prices`)))
-      .then(html => {
+    fetch(CURSOR_CATALOG_URL, {cache:"no-store"})
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`Failed to fetch model catalog from ${CURSOR_CATALOG_URL}: HTTP ${r.status}; using stored prices`)))
+      .then(payload => {
         if(ignore) return;
-        const cursorModels = parseCursorPricing(html);
+        const cursorModels = parseCatalogModels(payload);
         if(!cursorModels.length) {
-          setPricingStatus("Cursor pricing page loaded, but no model table was found. Using stored prices.");
+          setPricingStatus("Model catalog loaded, but no models were found. Using stored prices.");
           return;
         }
         setModels(ms=>{
@@ -508,11 +447,13 @@ function App() {
           }));
           return next;
         });
-        setPricingStatus(`Loaded ${cursorModels.length} Cursor models from cursor.com.`);
+        const updatedAt = payload && typeof payload.updatedAt === "string" ? new Date(payload.updatedAt) : null;
+        const stamp = updatedAt && !isNaN(updatedAt) ? ` (updated ${updatedAt.toISOString().slice(0,10)})` : "";
+        setPricingStatus(`Loaded ${cursorModels.length} Cursor models from bundled catalog${stamp}.`);
       })
       .catch(err => {
-        setPricingStatus("Using stored prices; Cursor pricing could not be refreshed.");
-        console.info("Cursor pricing refresh skipped:", err.message);
+        setPricingStatus("Using stored prices; Cursor model catalog could not be loaded.");
+        console.info("Cursor catalog refresh skipped:", err.message);
       });
     return () => { ignore = true; };
   }, []);
