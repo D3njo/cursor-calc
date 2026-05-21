@@ -14,11 +14,4 @@ across different models (Claude, GPT-5.5, etc.).
 
 ## Usage
 
-No build step needed. Just open `index.html` in a browser — or host it anywhere static.
-
-```sh
-# e.g. quick local server
-npx serve .
-```
-
 Live: [d3njo.github.io/cursor-calc](https://d3njo.github.io/cursor-calc)
