@@ -161,6 +161,7 @@ const defaultConfig = () => ({steps:cloneSteps(DEFAULT_STEPS),models:cloneModels
 const normalizeModelName = name => String(name||"Model").replace(/Claude\s+4[.]7\s+Sonnet/g,"Claude Sonnet 4.6").replace(/Claude\s+4[.]7\s+Opus/g,"Claude Opus 4.6");
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const modelIdFromName = name => modelKey(name).replace(/\s+/g,"").slice(0,32) || uid("m");
+const TEXT_PRICE_ROW_RE = /([A-Z][A-Za-z0-9 .:+-]{2,60}?)\s+\$([0-9.]+)\s+\$([0-9.]+)(?:\s+\$([0-9.]+))?/g;
 const clampReviewInterval = (value, fallback=0) => {
   const parsed = parseInt(value);
   return Number.isFinite(parsed) ? Math.min(100,Math.max(0,parsed)) : fallback;
@@ -231,17 +232,17 @@ function parseCursorPricing(html) {
   const tables = [...doc.querySelectorAll("table")];
   const parsed = [];
   tables.forEach(table => {
-    const headers = [...table.querySelectorAll("thead th")].map(th=>th.textContent.toLowerCase());
+    const headers = [...table.querySelectorAll("thead th")].map(th=>stripCellHtml(th.innerHTML).toLowerCase());
     [...table.querySelectorAll("tbody tr")].forEach(row => {
       const cells = [...row.children].map(cell=>cell.textContent.replace(/\s+/g," ").trim()).filter(Boolean);
       if(cells.length < 3) return;
-      const headerAt = words => headers.findIndex(h=>words.some(w=>h.includes(w)));
-      const headerNameIndex = headerAt(["model","name"]);
+      const findHeaderIndex = words => headers.findIndex(h=>words.some(w=>h.includes(w)));
+      const headerNameIndex = findHeaderIndex(["model","name"]);
       const nameIndex = headerNameIndex >= 0 ? headerNameIndex : 0;
-      const inputIndex = headerAt(["input"]);
-      const cacheReadIndex = headerAt(["cache read","cached input","cache hit"]);
-      const cacheWriteIndex = headerAt(["cache write","cache creation","cache storage"]);
-      const outputIndex = headerAt(["output"]);
+      const inputIndex = findHeaderIndex(["input"]);
+      const cacheReadIndex = findHeaderIndex(["cache read","cached input","cache hit"]);
+      const cacheWriteIndex = findHeaderIndex(["cache write","cache creation","cache storage"]);
+      const outputIndex = findHeaderIndex(["output"]);
       if(inputIndex < 0 || outputIndex < 0) return;
       const prices = cells.map(parsePrice);
       const inputP = prices[inputIndex];
@@ -260,7 +261,8 @@ function parseCursorPricing(html) {
   });
   if(parsed.length) return parsed;
   const text = stripCellHtml(html);
-  return [...text.matchAll(/([A-Z][A-Za-z0-9 .:+-]{2,60}?)\s+\$([0-9.]+)\s+\$([0-9.]+)(?:\s+\$([0-9.]+))?/g)]
+  // Fallback for plain text fragments like: ModelName $input $cache $output.
+  return [...text.matchAll(TEXT_PRICE_ROW_RE)]
     .map((m,i)=>({id:modelIdFromName(m[1]),name:normalizeModelName(m[1].trim()),inputP:Number(m[2]),cacheP:0,cacheWriteP:0,outputP:Number(m[4]||m[3]),color:COLOR_PALETTE[i%COLOR_PALETTE.length],source:"cursor"}));
 }
 function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
@@ -418,6 +420,7 @@ function App() {
   useEffect(() => {
     let ignore = false;
     const cursorPricingUrl = new URL(CURSOR_PRICING_URL);
+    // Keep the runtime fetch pinned to Cursor even if the constant is edited later.
     if(cursorPricingUrl.origin !== "https://cursor.com") return;
     fetch(cursorPricingUrl.href, {cache:"no-store"})
       .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${CURSOR_PRICING_URL}: HTTP ${r.status}`)))
