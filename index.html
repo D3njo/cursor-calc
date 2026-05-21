@@ -177,7 +177,8 @@ const isValidCatalogName = name => {
   if(INVALID_MODEL_KEYS.has(key)) return false;
   if(INVALID_MODEL_KEY_PARTS.some(part=>key.includes(part))) return false;
   return true;
-};const clampReviewInterval = (value, fallback=0) => {
+};
+const clampReviewInterval = (value, fallback=0) => {
   const parsed = parseInt(value);
   return Number.isFinite(parsed) ? Math.min(100,Math.max(0,parsed)) : fallback;
 };
