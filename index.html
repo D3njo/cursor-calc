@@ -387,7 +387,7 @@ function App() {
                   <button aria-label={`${step.name} duplizieren`} onClick={()=>dupStep(step)}
                     style={{background:`${C.blue}22`,border:`1px solid ${C.blue}44`,borderRadius:6,
                       color:C.blue,fontSize:13,padding:"4px 8px",flexShrink:0}}>⧉</button>
-                  <button aria-label={`${step.name} löschen`} disabled={steps.length<=1} onClick={()=>delStep(step.id)}
+                  <button aria-label={`${step.name} löschen${steps.length<=1?" (deaktiviert)":""}`} disabled={steps.length<=1} onClick={()=>delStep(step.id)}
                     style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                       color:C.red,fontSize:14,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
                 </div>
@@ -555,7 +555,7 @@ function App() {
                   {[["inputP","Input"],["cacheP","Cache-Read"],["outputP","Output"]].map(([f,l])=>(
                     <div key={f}>
                       <Label>{l} $/M</Label>
-                       <input aria-label={`Neues Modell ${l} Preis`} type="number" value={draft[f]} min={0} step={0.01}
+                      <input aria-label={`Neues Modell ${l} Preis`} type="number" value={draft[f]} min={0} step={0.01}
                         onChange={e=>setDraft(d=>({...d,[f]:parseFloat(e.target.value)||0}))}
                         style={{width:"100%",background:C.s1,border:`1px solid ${C.border2}`,
                           borderRadius:4,color:C.text,fontFamily:C.mono,fontSize:13,
@@ -565,7 +565,7 @@ function App() {
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                   <Label>Farbe:</Label>
-                   <input aria-label="Farbe des neuen Modells" type="color" value={draft.color}
+                  <input aria-label="Farbe des neuen Modells" type="color" value={draft.color}
                     onChange={e=>setDraft(d=>({...d,color:e.target.value}))}
                     style={{width:44,height:36,border:`1px solid ${C.border2}`,
                       borderRadius:4,cursor:"pointer",padding:2,background:C.s1}}/>

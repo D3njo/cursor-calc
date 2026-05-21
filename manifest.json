@@ -1,7 +1,7 @@
 {
   "name": "Cursor Token Calculator",
   "short_name": "Cursor Calc",
-  "description": "Cursor AI Token & Kosten Rechner",
+  "description": "Cursor AI Token & Cost Calculator",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
