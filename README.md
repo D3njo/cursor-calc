@@ -31,6 +31,17 @@ npx serve .
 
 Then open `http://localhost:8000` for Python or the URL printed by `npx serve`.
 
+## Model catalog
+
+The list of Cursor models and their prices lives in [`models.json`](./models.json)
+and is loaded same-origin at startup (no CORS, works offline once cached).
+A scheduled GitHub Action (`.github/workflows/update-models.yml`) re-scrapes
+[cursor.com/docs/models-and-pricing](https://cursor.com/docs/models-and-pricing)
+once a day via [`scripts/update-models.mjs`](./scripts/update-models.mjs) and
+commits any pricing changes automatically. To refresh on demand, run the
+workflow manually from the **Actions** tab, or run the script locally with
+`node scripts/update-models.mjs`.
+
 ## Validation
 
 This repository has no package manager, build script, or automated test suite. For
