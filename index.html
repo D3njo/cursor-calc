@@ -112,7 +112,7 @@ const C = {
 const STORAGE_KEY = "cursor-calc:v4";
 const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
 const CURSOR_PRICING_URL = "https://cursor.com/docs/models-and-pricing";
-const PRICING_UPDATED = "live at startup";
+const PRICING_UPDATED = "Loaded from cursor.com at startup";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
 
@@ -157,8 +157,12 @@ const normalizeModelName = name => String(name||"Model").replace(/\s+/g," ").tri
 const modelKey = name => normalizeModelName(name).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const MAX_MODEL_ID_SLUG_LENGTH = 48;
 const MIN_VALID_MODEL_KEY_LENGTH = 2;
+const MIN_EXPECTED_CURSOR_MODELS = 10;
 const INVALID_MODEL_KEY_PARTS = ["pricing","token"];
-const modelIdFromName = name => `cursor-${modelKey(name).replace(/\s+/g,"-").slice(0,MAX_MODEL_ID_SLUG_LENGTH) || uid("m")}`;
+const modelIdFromName = name => {
+  const slug = modelKey(name).replace(/\s+/g,"-").slice(0,MAX_MODEL_ID_SLUG_LENGTH);
+  return slug ? `cursor-${slug}` : uid("cursor-m");
+};
 const isCustomModel = model => model?.source === "custom";
 const isCursorModel = model => model?.source === "cursor";
 const isPlaceholderModel = model => model?.source === "placeholder";
@@ -299,7 +303,7 @@ function parseCursorPricing(html) {
     .replace(/[ \t]+/g," ");
   for (const line of text.split(/\n+/)) {
     for (const match of line.matchAll(TEXT_PRICE_ROW_RE)) {
-    const [,rawName,inputPrice,secondPrice,thirdPrice,fourthPrice] = match;
+    const {1: rawName, 2: inputPrice, 3: secondPrice, 4: thirdPrice, 5: fourthPrice} = match;
     const name = rawName.replace(/(?:Input|Cached input|Cache read|Output|Price).*$/i,"").trim();
     addParsedModel({
       name,
@@ -437,6 +441,7 @@ function App() {
   const customModels = models.filter(isCustomModel);
   const cursorModels = models.filter(isCursorModel);
   const activeModels = models.filter(m=>activeModelIds.includes(m.id) || isCustomModel(m));
+  const previewModels = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m));
   const getModelsForSelectValue = value => {
     const active = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m)).slice(0,1);
     return active.some(m=>m.id===value) ? active : [models.find(m=>m.id===value),...active].filter(Boolean);
@@ -485,7 +490,7 @@ function App() {
         setModels(ms=>{
           const hadPlaceholder = ms.some(isPlaceholderModel);
           const existingCursorModels = ms.filter(isCursorModel);
-          const hadSmallCursorFallback = existingCursorModels.length > 0 && existingCursorModels.length < 10;
+          const hadSmallCursorFallback = existingCursorModels.length > 0 && existingCursorModels.length < MIN_EXPECTED_CURSOR_MODELS;
           const next = mergeCursorModels(ms, activeModelIds, cursorModels);
           const firstAvailable = next.find(m=>!isPlaceholderModel(m));
           setActiveModelIds(ids=>{
@@ -891,9 +896,8 @@ function App() {
               <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,marginBottom:8}}>
                 ACTIVE MODEL COST PREVIEW ({sessions} SESSIONS)
               </div>
-              {(activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m))).map(m=>{
+              {previewModels.map(m=>{
                 const total=calcCost(m,totInK,totCacheK,totOutK);
-                const previewModels = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m));
                 const maxC=Math.max(...previewModels.map(x=>calcCost(x,totInK,totCacheK,totOutK)));
                 return (
                   <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
