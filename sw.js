@@ -33,10 +33,7 @@ self.addEventListener('fetch', e => {
       caches.open(CACHE).then(c => c.put(e.request, clone));
       return res;
     }).catch(() => {
-      if (e.request.mode === 'navigate') {
-        return caches.match(new URL('./index.html', self.location.href).toString())
-          .then(match => match || caches.match('./index.html'));
-      }
+      if (e.request.mode === 'navigate') return caches.match('./index.html');
       return new Response('Offline', {status:503, headers:{'Content-Type':'text/plain'}});
     }))
   );

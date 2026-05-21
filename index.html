@@ -112,7 +112,7 @@ const C = {
 const STORAGE_KEY = "cursor-calc:v2";
 const PRICING_UPDATED = "2026-05-21";
 let _id = 20;
-const uid = (prefix="m") => `${prefix}${_id++}`;
+const uid = prefix => `${prefix}${_id++}`;
 
 const DEFAULT_STEPS = [
   { id:1, name:"Review / Plan", inputK:28, cacheK:8,  outputK:4  },
@@ -128,15 +128,15 @@ const DEFAULT_MODELS = [
   { id:"opus47", name:"Claude 4.7 Opus", inputP:15.00, cacheP:1.50, outputP:75.00, color:"#f472b6" },
 ];
 const PLANS = [
-  { name:"Hobby", price:0, allowance:"Basis" },
+  { name:"Hobby", price:0, allowance:"Kein Budgetlimit" },
   { name:"Pro",   price:20  },
   { name:"Pro+",  price:60  },
   { name:"Ultra", price:200 },
 ];
 const PRESETS = [
-  { name:"Small Bugfix", steps:[{id:uid("s"),name:"Analyse",inputK:20,cacheK:5,outputK:3},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5}] },
-  { name:"Feature", steps:[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5}] },
-  { name:"Large Refactor", steps:[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7}] },
+  { name:"Small Bugfix", steps:()=>[{id:uid("s"),name:"Analyse",inputK:20,cacheK:5,outputK:3},{id:uid("s"),name:"Patch",inputK:35,cacheK:10,outputK:5}] },
+  { name:"Feature", steps:()=>[{id:uid("s"),name:"Plan",inputK:35,cacheK:10,outputK:5},{id:uid("s"),name:"Implement",inputK:75,cacheK:25,outputK:10},{id:uid("s"),name:"Review",inputK:55,cacheK:18,outputK:5}] },
+  { name:"Large Refactor", steps:()=>[{id:uid("s"),name:"Explore",inputK:90,cacheK:30,outputK:8},{id:uid("s"),name:"Plan",inputK:70,cacheK:25,outputK:9},{id:uid("s"),name:"Refactor",inputK:140,cacheK:45,outputK:16},{id:uid("s"),name:"Validate",inputK:80,cacheK:25,outputK:7}] },
 ];
 const RATES = { USD:1, EUR:0.92 };
 const SYMBOLS = { USD:"$", EUR:"€" };
@@ -148,14 +148,40 @@ const fmtMoney = (n, cur) => {
 };
 const calcCost = (m, inK, cacheK, outK) => ((Math.max(inK-cacheK,0))/1000)*m.inputP + (cacheK/1000)*m.cacheP + (outK/1000)*m.outputP;
 const defaultConfig = () => ({steps:DEFAULT_STEPS,models:DEFAULT_MODELS,sessions:9,cModelId:"c25f",rModelId:"gpt55",revInK:80,revCacheK:20,revOutK:12,reviewEvery:10,currency:"USD"});
-const cloneSteps = steps => steps.map(s => ({...s,id:uid("s")}));
 const encodeConfig = cfg => btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 const decodeConfig = raw => JSON.parse(decodeURIComponent(escape(atob(raw))));
+function sanitizeConfig(raw) {
+  const d = defaultConfig();
+  if (!raw || typeof raw !== "object") return d;
+  const models = Array.isArray(raw.models) && raw.models.length ? raw.models.map(m=>({
+    id:String(m.id||uid("m")), name:String(m.name||"Modell"),
+    inputP:Number(m.inputP)||0, cacheP:Number(m.cacheP)||0, outputP:Number(m.outputP)||0,
+    color:String(m.color||"#00d4aa")
+  })) : d.models;
+  const steps = Array.isArray(raw.steps) && raw.steps.length ? raw.steps.map(s=>{
+    const inputK = Math.max(1,parseInt(s.inputK)||1);
+    return {id:s.id||uid("s"), name:String(s.name||"Step"), inputK,
+      cacheK:Math.min(inputK,Math.max(0,parseInt(s.cacheK)||0)),
+      outputK:Math.max(1,parseInt(s.outputK)||1)};
+  }) : d.steps;
+  const revInK = Math.max(1,parseInt(raw.revInK)||d.revInK);
+  return {
+    steps, models,
+    sessions:Math.min(50,Math.max(1,parseInt(raw.sessions)||d.sessions)),
+    cModelId:models.some(m=>m.id===raw.cModelId)?raw.cModelId:models[0].id,
+    rModelId:models.some(m=>m.id===raw.rModelId)?raw.rModelId:models[0].id,
+    revInK,
+    revCacheK:Math.min(revInK,Math.max(0,parseInt(raw.revCacheK)||d.revCacheK)),
+    revOutK:Math.max(1,parseInt(raw.revOutK)||d.revOutK),
+    reviewEvery:Math.min(100,Math.max(1,parseInt(raw.reviewEvery)||d.reviewEvery)),
+    currency:RATES[raw.currency]?raw.currency:d.currency
+  };
+}
 function loadConfig() {
   const qs = new URLSearchParams(location.search);
   try {
-    if (qs.has("config")) return {...defaultConfig(), ...decodeConfig(qs.get("config"))};
-    return {...defaultConfig(), ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {})};
+    if (qs.has("config")) return sanitizeConfig(decodeConfig(qs.get("config")));
+    return sanitizeConfig(JSON.parse(localStorage.getItem(STORAGE_KEY)));
   } catch(e) { return defaultConfig(); }
 }
 
@@ -176,21 +202,21 @@ function Label({children}) {
   return <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:4,letterSpacing:0.3}}>{children}</div>;
 }
 
-function TokSlider({label, value, onChange, color, max}) {
+function TokSlider({label, value, onChange, color, max, min=1}) {
   return (
     <div style={{marginBottom:10}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
         <span style={{fontSize:11,color:C.muted,fontFamily:C.mono}}>{label}</span>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          <input type="number" value={value} min={1} max={max} step={1}
+          <input type="number" value={value} min={min} max={max} step={1}
             aria-label={label}
-            onChange={e=>onChange(Math.max(1,Math.round(parseFloat(e.target.value)||1)))}
+            onChange={e=>onChange(Math.max(min,Math.round(parseFloat(e.target.value)||min)))}
             style={{width:64,background:C.s3,border:`1px solid ${C.border2}`,
               borderRadius:4,color,fontFamily:C.mono,fontSize:13,padding:"4px 6px",textAlign:"right"}}/>
           <span style={{fontFamily:C.mono,fontSize:10,color:C.muted}}>k</span>
         </div>
       </div>
-      <input type="range" min={1} max={max} step={1} value={value}
+      <input type="range" min={min} max={max} step={1} value={value}
         aria-label={`${label} Slider`}
         onChange={e=>onChange(Number(e.target.value))}
         style={{accentColor:color,color}}/>
@@ -263,6 +289,7 @@ function App() {
 
   const updStep  = (id,f,v) => setSteps(ss=>ss.map(s=>{
     if(s.id!==id) return s;
+    if(f==="inputK") return {...s,inputK:v,cacheK:Math.min(s.cacheK||0,v)};
     const value = f==="cacheK" ? Math.min(v,s.inputK) : v;
     return {...s,[f]:value};
   }));
@@ -312,7 +339,7 @@ function App() {
     const file = e.target.files[0]; if(!file) return;
     file.text().then(t => {
       try {
-        const d={...defaultConfig(),...JSON.parse(t)};
+        const d=sanitizeConfig(JSON.parse(t));
         setSteps(d.steps); setModels(d.models); setSessions(d.sessions); setCModelId(d.cModelId); setRModelId(d.rModelId);
         setRevInK(d.revInK); setRevCacheK(d.revCacheK); setRevOutK(d.revOutK); setReviewEvery(d.reviewEvery); setCurrency(d.currency);
       } catch(err) { alert("Import fehlgeschlagen: Ungültige JSON-Datei"); }
@@ -321,6 +348,10 @@ function App() {
   };
   const shareConfig = async () => {
     const url = `${location.origin}${location.pathname}?config=${encodeConfig(cfg)}`;
+    if(url.length>6000) {
+      setShareUrl("Konfiguration ist zu groß für einen zuverlässigen Share-Link. Bitte Export JSON verwenden.");
+      return;
+    }
     try { await navigator.clipboard.writeText(url); alert("Share-Link kopiert"); }
     catch(e) { setShareUrl(url); }
   };
@@ -382,7 +413,7 @@ function App() {
             badge={`${fmtTok(sesInK)} in · ${fmtTok(sesCacheK)} cache · ${fmtTok(sesOutK)} out · ${money(sesCost)}/Session`}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:12}}>
               {PRESETS.map(p=>(
-                <button key={p.name} onClick={()=>setSteps(cloneSteps(p.steps))}
+                <button key={p.name} onClick={()=>setSteps(p.steps())}
                   style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,
                     fontWeight:700,fontSize:12,padding:"10px"}}>Preset: {p.name}</button>
               ))}
@@ -411,7 +442,7 @@ function App() {
                 </div>
                 <TokSlider label="Input-Tokens" value={step.inputK} color={C.teal} max={500}
                   onChange={v=>updStep(step.id,"inputK",v)}/>
-                <TokSlider label="Cache-Read Tokens" value={Math.min(step.cacheK||1,step.inputK)} color={C.muted} max={step.inputK}
+                <TokSlider label="Cache-Read Tokens" value={Math.min(step.cacheK||0,step.inputK)} color={C.muted} max={step.inputK} min={0}
                   onChange={v=>updStep(step.id,"cacheK",v)}/>
                 <TokSlider label="Output-Tokens" value={step.outputK} color={C.amber} max={100}
                   onChange={v=>updStep(step.id,"outputK",v)}/>
@@ -432,7 +463,7 @@ function App() {
             <div style={{marginBottom:18}}>
               <Label>Composer Sessions (N)</Label>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <input aria-label="Composer Sessions" type="range" min={1} max={100} value={sessions}
+                <input aria-label="Composer Sessions" type="range" min={1} max={50} value={sessions}
                   onChange={e=>setSessions(Number(e.target.value))}
                   style={{flex:1,accentColor:C.teal,color:C.teal}}/>
                 <span style={{fontFamily:C.mono,fontWeight:800,fontSize:24,
@@ -445,7 +476,7 @@ function App() {
               Kosten gesamt: {money(totCost)}
             </div>
           </Panel>
-          <Panel title={`Review-Session (${reviewCount}× je ${reviewEvery} Sessions)`}>
+          <Panel title={`Review-Session (${reviewCount}×, mindestens eine Review je ${reviewEvery} Sessions)`}>
             <div style={{marginBottom:14}}>
               <Label>Review-Modell</Label>
               <ModelSelect label="Review-Modell" models={models} value={rModelId} onChange={setRModelId}/>
