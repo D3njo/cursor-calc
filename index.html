@@ -27,8 +27,42 @@ document.head.appendChild(appleIcon);
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', {scope:'./'})
-      .then(() => console.log('SW registered'))
+      .then(reg => {
+        console.log('SW registered');
+
+        // Tell a freshly installed waiting worker to take over immediately.
+        const promote = w => { try { w.postMessage('SKIP_WAITING'); } catch(e){} };
+        if (reg.waiting) promote(reg.waiting);
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              promote(nw);
+            }
+          });
+        });
+
+        // Poll for updates periodically and whenever the page becomes visible
+        // again, so phones / long-lived tabs pick up new deploys quickly.
+        const checkForUpdate = () => { try { reg.update(); } catch(e){} };
+        setInterval(checkForUpdate, 60 * 1000);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') checkForUpdate();
+        });
+        window.addEventListener('focus', checkForUpdate);
+        window.addEventListener('online', checkForUpdate);
+      })
       .catch(e => console.log('SW error:', e));
+
+    // When the active SW changes (i.e. a new version took control),
+    // reload exactly once so the user sees the latest assets right away.
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    });
   });
 }
 </script>
