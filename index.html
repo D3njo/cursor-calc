@@ -415,9 +415,7 @@ function App() {
   const totCacheK = sessions * sesCacheK;
   const totOutK = sessions * sesOutK;
   const customModels = models.filter(isCustomModel);
-  const cursorModels = models.filter(isCursorModel);
   const activeModels = models.filter(m=>!isPlaceholderModel(m) && (activeModelIds.includes(m.id) || isCustomModel(m)));
-  const previewModels = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m));
   const getModelsForSelectValue = value => {
     const active = activeModels.length ? activeModels : models.filter(m=>!isPlaceholderModel(m)).slice(0,1);
     return active.some(m=>m.id===value) ? active : [models.find(m=>m.id===value),...active].filter(Boolean);
@@ -868,62 +866,64 @@ function App() {
               <ModelSelect label="Currency" models={Object.keys(RATES).map(id=>({id,name:id}))} value={currency} onChange={setCurrency}/>
             </div>
             <div style={{marginBottom:16}}>
-              <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,marginBottom:8}}>
-                ACTIVE MODEL COST PREVIEW ({sessions} SESSIONS)
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10}}>
+                <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,letterSpacing:0.5}}>
+                  ACTIVE MODEL COST PREVIEW ({sessions} SESSIONS)
+                </div>
+                <div style={{fontFamily:C.mono,fontSize:9,color:C.dim,letterSpacing:0.3}}>
+                  Tap a model to enable / disable
+                </div>
               </div>
-              {previewModels.map(m=>{
-                const total=calcCost(m,totInK,totCacheK,totOutK);
-                const maxC=Math.max(...previewModels.map(x=>calcCost(x,totInK,totCacheK,totOutK)));
+              {(() => {
+                const allPreview = models.filter(m=>!isPlaceholderModel(m));
+                const maxC = Math.max(0,...allPreview.map(x=>calcCost(x,totInK,totCacheK,totOutK)));
+                const VISIBLE_ROWS = 12;
+                const rowHeight = 36;
+                const scrolls = allPreview.length > VISIBLE_ROWS;
                 return (
-                  <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                    <span style={{fontFamily:C.mono,fontSize:11,color:m.color,
-                      width:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>
-                      {m.name}
-                    </span>
-                    <div style={{flex:1,height:6,background:C.border,borderRadius:3,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${maxC>0?(total/maxC)*100:0}%`,
-                        background:m.color,borderRadius:3,transition:"width 0.25s"}}/>
-                    </div>
-                    <span style={{fontFamily:C.mono,fontSize:11,color:C.text,
-                      minWidth:55,textAlign:"right"}}>{money(total)}</span>
+                  <div style={{maxHeight:scrolls ? rowHeight*VISIBLE_ROWS : "none",
+                    overflowY:scrolls ? "auto" : "visible",
+                    paddingRight:scrolls ? 6 : 0}}>
+                    {allPreview.map(m=>{
+                      const total = calcCost(m,totInK,totCacheK,totOutK);
+                      const isActive = activeModelIds.includes(m.id) || isCustomModel(m);
+                      const locked = isCustomModel(m);
+                      const handleToggle = () => { if(!locked) setModelAvailability(m,!isActive); };
+                      return (
+                        <button key={m.id} type="button" onClick={handleToggle}
+                          aria-pressed={isActive} disabled={locked}
+                          aria-label={locked ? `${m.name} (always active)` : `${isActive ? "Disable" : "Enable"} ${m.name}`}
+                          title={locked ? "Custom models are always active" : (isActive ? "Active — click to disable" : "Disabled — click to enable")}
+                          style={{display:"flex",alignItems:"center",gap:10,width:"100%",
+                            padding:"6px 8px",marginBottom:4,
+                            background:isActive?C.s2:"transparent",
+                            border:`1px solid ${isActive?C.border:"transparent"}`,
+                            borderRadius:6,cursor:locked?"default":"pointer",
+                            opacity:isActive?1:0.55,textAlign:"left",
+                            transition:"background .15s, opacity .15s, border-color .15s"}}>
+                          <span aria-hidden="true" style={{
+                            fontFamily:C.mono,fontSize:14,width:14,textAlign:"center",
+                            color:isActive?C.amber:C.dim,flexShrink:0}}>
+                            {isActive?"★":"☆"}
+                          </span>
+                          <span style={{fontFamily:C.mono,fontSize:13,color:m.color,
+                            flex:"0 0 200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            {m.name}
+                          </span>
+                          <div style={{flex:"1 1 auto",minWidth:60,maxWidth:180,
+                            height:6,background:C.border,borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${maxC>0?(total/maxC)*100:0}%`,
+                              background:m.color,borderRadius:3,transition:"width 0.25s"}}/>
+                          </div>
+                          <span style={{fontFamily:C.mono,fontSize:13,color:C.text,
+                            minWidth:60,textAlign:"right",flexShrink:0}}>{money(total)}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 );
-              })}
+              })()}
             </div>
-            <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,margin:"2px 0 8px"}}>
-              CURSOR MODELS FROM PRICING PAGE
-            </div>
-            {cursorModels.length ? cursorModels.map(m=>{
-              const enabled = activeModelIds.includes(m.id);
-              return (
-                <button key={m.id} aria-pressed={enabled} aria-label={`${enabled ? "Disable" : "Enable"} ${m.name}`}
-                  onClick={()=>setModelAvailability(m,!enabled)}
-                  style={{width:"100%",textAlign:"left",background:enabled?C.s3:C.s2,border:`1px solid ${enabled?C.border:C.dim}`,
-                    borderRadius:8,padding:12,marginBottom:10,opacity:enabled?1:.45,
-                    display:"block",transition:"opacity .15s, border-color .15s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                    <span style={{width:11,height:11,borderRadius:3,background:enabled?m.color:C.dim,flexShrink:0}}/>
-                    <span style={{flex:1,color:enabled?m.color:C.muted,fontFamily:C.sans,fontWeight:800,fontSize:13,minWidth:0,
-                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</span>
-                    <span style={{fontFamily:C.mono,fontSize:10,color:enabled?C.teal:C.muted}}>{enabled ? "ACTIVE" : "DISABLED"}</span>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                    {[["Input",m.inputP,C.teal],["Cache read",m.cacheP,C.muted],["Cache write",m.cacheWriteP,C.blue],["Output",m.outputP,C.amber]].map(([label,value,color])=>(
-                      <div key={label}>
-                        <Label>{label} $/M</Label>
-                        <div style={{background:C.s2,border:`1px solid ${C.border2}`,borderRadius:4,color:enabled?color:C.muted,
-                          fontFamily:C.mono,fontSize:13,padding:"7px 8px",textAlign:"right"}}>{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </button>
-              );
-            }) : (
-              <div style={{background:C.s3,border:`1px solid ${C.border}`,borderRadius:8,padding:12,marginBottom:10,
-                fontFamily:C.mono,fontSize:11,color:C.muted}}>
-                Cursor models will appear here after the startup refresh succeeds.
-              </div>
-            )}
             <div style={{fontFamily:C.mono,fontSize:9,color:C.muted,letterSpacing:0.5,margin:"16px 0 8px"}}>
               CUSTOM MODELS
             </div>

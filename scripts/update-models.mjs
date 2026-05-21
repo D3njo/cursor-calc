@@ -13,9 +13,20 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const SOURCE_URL = "https://cursor.com/docs/models-and-pricing";
+const PRIMARY_SOURCE_URL = "https://cursor.com/docs/models-and-pricing";
+// The Mintlify-built docs page used to render its pricing tables straight into
+// the initial HTML, but the markup occasionally changes (different domain,
+// client-rendered tables, etc.). To stay resilient we try a handful of known
+// variants in order and use the first one that yields a usable parse.
+const SOURCE_URLS = [
+  PRIMARY_SOURCE_URL,
+  "https://www.cursor.com/docs/models-and-pricing",
+  "https://docs.cursor.com/models-and-pricing",
+  "https://cursor.com/pricing",
+];
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUTPUT = join(ROOT, "models.json");
+const MIN_EXPECTED_MODELS = 5;
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/124.0.0.0 Safari/537.36 cursor-calc-update-bot/1.0 " +
@@ -148,16 +159,13 @@ function parseModelsFromTables(tables) {
     if (inputIdx < 0 || outputIdx < 0) continue;
     const cacheReadIdx = findHeaderIndex(headers, CACHE_READ_HEADERS);
     const cacheWriteIdx = findHeaderIndex(headers, CACHE_WRITE_HEADERS);
-    const minCells =
-      Math.max(nameIdx, inputIdx, outputIdx, cacheReadIdx, cacheWriteIdx) + 1;
+    // Only require enough cells to read name/input/output. Cache columns are
+    // often blank or merged-away for non-Anthropic providers, so demanding a
+    // cell at every header index would silently drop those rows.
+    const minCells = Math.max(nameIdx, inputIdx, outputIdx) + 1;
 
     for (let i = headerRowIdx + 1; i < rows.length; i++) {
       const cells = rows[i];
-      // Only require enough cells to safely index the columns we read. The
-      // previous `cells.length < headers.length` guard dropped valid rows
-      // whenever Mintlify emitted a header row with a colspan group cell
-      // (fewer header cells than data cells) or trimmed a trailing empty
-      // cell on data rows.
       if (cells.length < minCells) continue;
       const rawName = cells[nameIdx] || "";
       // Strip provider icons / "(beta)" notes that follow the model name.
@@ -166,26 +174,158 @@ function parseModelsFromTables(tables) {
       const inputP = parsePrice(cells[inputIdx]);
       const outputP = parsePrice(cells[outputIdx]);
       if (!inputP || !outputP) continue;
-      const cacheP = cacheReadIdx >= 0 ? parsePrice(cells[cacheReadIdx]) : 0;
-      const cacheWriteP = cacheWriteIdx >= 0 ? parsePrice(cells[cacheWriteIdx]) : 0;
+      // Cache columns are optional per-row: missing/empty/"-"/"N/A" all parse
+      // to 0, which is the right value for models without cache pricing.
+      const cacheP =
+        cacheReadIdx >= 0 && cacheReadIdx < cells.length
+          ? parsePrice(cells[cacheReadIdx])
+          : 0;
+      const cacheWriteP =
+        cacheWriteIdx >= 0 && cacheWriteIdx < cells.length
+          ? parsePrice(cells[cacheWriteIdx])
+          : 0;
       byKey.set(nameKey(name), { name, inputP, cacheP, cacheWriteP, outputP });
     }
   }
   return [...byKey.values()];
 }
 
+// ---------- JSON fallback parser ----------
+//
+// If the page no longer ships a server-rendered <table>, the model catalog is
+// usually still embedded as JSON inside a <script> tag (Next.js __NEXT_DATA__
+// or similar hydration payload). Walk that JSON and harvest any object that
+// looks like a model pricing entry: it has a name-ish field together with at
+// least an input and output price (numbers or "$X" strings).
+
+function toPriceNumber(v) {
+  if (v == null) return 0;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v !== "string") return 0;
+  return parsePrice(v);
+}
+
+const NAME_KEYS = ["name", "model", "modelName", "title", "label", "id"];
+const INPUT_KEYS = ["input", "inputPrice", "input_price", "inputCost", "in"];
+const OUTPUT_KEYS = ["output", "outputPrice", "output_price", "outputCost", "out"];
+const CACHE_READ_KEYS = [
+  "cacheRead", "cache_read", "cachedInput", "cached_input",
+  "cacheHit", "cache_hit", "cache",
+];
+const CACHE_WRITE_KEYS = [
+  "cacheWrite", "cache_write", "cacheCreation", "cache_creation",
+  "cacheFill", "cache_fill", "cacheStorage", "cache_storage",
+];
+
+function pickField(obj, keys) {
+  for (const k of keys) if (k in obj) return obj[k];
+  // case-insensitive fallback
+  const lower = new Map(Object.keys(obj).map((k) => [k.toLowerCase(), k]));
+  for (const k of keys) {
+    const hit = lower.get(k.toLowerCase());
+    if (hit) return obj[hit];
+  }
+  return undefined;
+}
+
+function harvestJsonModels(node, out) {
+  if (Array.isArray(node)) {
+    for (const item of node) harvestJsonModels(item, out);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+
+  const rawName = pickField(node, NAME_KEYS);
+  const rawInput = pickField(node, INPUT_KEYS);
+  const rawOutput = pickField(node, OUTPUT_KEYS);
+  if (
+    typeof rawName === "string" &&
+    rawInput != null &&
+    rawOutput != null
+  ) {
+    const name = stripHtml(rawName);
+    if (isValidModelName(name)) {
+      const inputP = toPriceNumber(rawInput);
+      const outputP = toPriceNumber(rawOutput);
+      if (inputP && outputP) {
+        const cacheP = toPriceNumber(pickField(node, CACHE_READ_KEYS));
+        const cacheWriteP = toPriceNumber(pickField(node, CACHE_WRITE_KEYS));
+        const key = nameKey(name);
+        if (!out.has(key)) {
+          out.set(key, { name, inputP, cacheP, cacheWriteP, outputP });
+        }
+      }
+    }
+  }
+  for (const v of Object.values(node)) harvestJsonModels(v, out);
+}
+
+function parseModelsFromJsonBlobs(html) {
+  const out = new Map();
+  const scriptRe = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let sm;
+  while ((sm = scriptRe.exec(html))) {
+    const body = sm[1].trim();
+    if (!body || body[0] !== "{" && body[0] !== "[") {
+      // Try to locate any JSON-looking object inside the script body.
+      const jsonRe = /(\{[\s\S]*\}|\[[\s\S]*\])/;
+      const m = body.match(jsonRe);
+      if (!m) continue;
+      try {
+        harvestJsonModels(JSON.parse(m[1]), out);
+      } catch {}
+      continue;
+    }
+    try {
+      harvestJsonModels(JSON.parse(body), out);
+    } catch {}
+  }
+  return [...out.values()];
+}
+
 // ---------- Main ----------
 
-async function fetchSource() {
-  const res = await fetch(SOURCE_URL, {
+async function fetchUrl(url) {
+  const res = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: "text/html,application/xhtml+xml",
     },
     redirect: "follow",
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${SOURCE_URL}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
   return await res.text();
+}
+
+function parseModelsFromHtml(html) {
+  const tables = extractTables(html);
+  const fromTables = parseModelsFromTables(tables);
+  if (fromTables.length >= MIN_EXPECTED_MODELS) {
+    return { models: fromTables, strategy: "tables", tables: tables.length };
+  }
+  const fromJson = parseModelsFromJsonBlobs(html);
+  if (fromJson.length >= fromTables.length) {
+    return { models: fromJson, strategy: "json", tables: tables.length };
+  }
+  return { models: fromTables, strategy: "tables", tables: tables.length };
+}
+
+async function tryFetchAndParse() {
+  const errors = [];
+  let lastDiagnostic = null;
+  for (const url of SOURCE_URLS) {
+    try {
+      const html = await fetchUrl(url);
+      const { models, strategy, tables } = parseModelsFromHtml(html);
+      if (models.length >= MIN_EXPECTED_MODELS) {
+        return { url, models, strategy };
+      }
+      lastDiagnostic = { url, html, models, strategy, tables };
+    } catch (err) {
+      errors.push(`${url}: ${err.message}`);
+    }
+  }
+  return { failed: true, errors, diagnostic: lastDiagnostic };
 }
 
 function readExisting() {
@@ -220,32 +360,43 @@ function modelsEqual(a, b) {
 }
 
 (async () => {
-  const html = await fetchSource();
-  const tables = extractTables(html);
-  const models = sortModels(parseModelsFromTables(tables));
-
-  if (models.length < 5) {
-    console.error(
-      `Refusing to write models.json: parsed only ${models.length} models from ${SOURCE_URL}.`
-    );
+  const result = await tryFetchAndParse();
+  if (result.failed) {
+    console.error("Refusing to write models.json: every source URL failed.");
+    if (result.errors.length) {
+      console.error("Fetch errors:");
+      for (const e of result.errors) console.error("  -", e);
+    }
+    if (result.diagnostic) {
+      const { url, html, models, strategy, tables } = result.diagnostic;
+      console.error(
+        `Last attempt: ${url} (strategy=${strategy}, html=${html.length}b, ` +
+          `tables=${tables}, parsed=${models.length})`
+      );
+      console.error("--- HTML preview (first 2000 chars) ---");
+      console.error(html.slice(0, 2000));
+      console.error("--- end preview ---");
+    }
     process.exit(1);
   }
+
+  const { url, models: parsed, strategy } = result;
+  const models = sortModels(parsed);
 
   const existing = readExisting();
   const sameModels = existing && modelsEqual(sortModels(existing.models || []), models);
   if (sameModels) {
-    console.log(`No changes (${models.length} models).`);
-    // Still touch updatedAt? No — keep file untouched so the workflow skips the commit.
+    console.log(`No changes (${models.length} models from ${url} via ${strategy}).`);
     return;
   }
 
   const payload = {
     updatedAt: new Date().toISOString(),
-    source: SOURCE_URL,
+    source: url,
     models,
   };
   writeFileSync(OUTPUT, JSON.stringify(payload, null, 2) + "\n", "utf8");
-  console.log(`Wrote ${models.length} models to ${OUTPUT}`);
+  console.log(`Wrote ${models.length} models to ${OUTPUT} (source=${url}, strategy=${strategy}).`);
 })().catch((err) => {
   console.error(err);
   process.exit(1);
