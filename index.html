@@ -234,7 +234,7 @@ function parseCursorPricing(html) {
   const addParsedModel = (model, index=parsedByKey.size) => {
     const name = normalizeModelName(model.name);
     const key = modelKey(name);
-    if(!key || key.length < 2 || key.includes("pricing") || key.includes("token")) return;
+    if(!key || key.length < 2 || ["model","name","input","output","price"].includes(key) || key.includes("pricing") || key.includes("token")) return;
     const inputP = Number(model.inputP)||0;
     const outputP = Number(model.outputP)||0;
     if(!inputP || !outputP) return;
@@ -286,8 +286,14 @@ function parseCursorPricing(html) {
     });
   });
   if(parsedByKey.size) return [...parsedByKey.values()];
-  const text = stripCellHtml(html).replace(/\\u0024/g,"$");
-  for (const match of text.matchAll(TEXT_PRICE_ROW_RE)) {
+  const text = html
+    .replace(/<\/(tr|p|li|div|h[1-6])>/gi,"\n")
+    .replace(/<[^>]+>/g," ")
+    .replace(/\\u0024/g,"$")
+    .replace(/\s+\n/g,"\n")
+    .replace(/[ \t]+/g," ");
+  for (const line of text.split(/\n+/)) {
+    for (const match of line.matchAll(TEXT_PRICE_ROW_RE)) {
     const [,rawName,inputPrice,secondPrice,thirdPrice,fourthPrice] = match;
     const name = rawName.replace(/(?:Input|Cached input|Cache read|Output|Price).*$/i,"").trim();
     addParsedModel({
@@ -297,6 +303,7 @@ function parseCursorPricing(html) {
       cacheWriteP:fourthPrice ? parsePrice(thirdPrice) : 0,
       outputP:parsePrice(fourthPrice || thirdPrice || secondPrice)
     });
+    }
   }
   return [...parsedByKey.values()];
 }
