@@ -463,10 +463,12 @@ function App() {
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                   <span style={{fontFamily:C.mono,fontSize:11,color:C.muted,
                     background:C.s2,borderRadius:4,padding:"2px 8px",flexShrink:0}}>{i+1}</span>
-                  <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,flexShrink:0}}>Name</span>
-                  <input aria-label={`Name für Step ${i+1}`} title="Step umbenennen" value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
-                    style={{flex:1,background:C.s2,border:`1px solid ${C.border2}`,borderRadius:5,color:C.text,
-                      fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0,padding:"5px 7px"}}/>
+                  <label style={{flex:1,display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                    <span style={{fontFamily:C.mono,fontSize:10,color:C.muted,flexShrink:0}}>Name</span>
+                    <input aria-label={`Name für Step ${i+1}`} title="Step umbenennen" value={step.name} onChange={e=>updStep(step.id,"name",e.target.value)}
+                      style={{flex:1,background:C.s2,border:`1px solid ${C.border2}`,borderRadius:5,color:C.text,
+                        fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0,padding:"5px 7px"}}/>
+                  </label>
                   <button aria-label={`${step.name} nach oben verschieben`} disabled={i===0} onClick={()=>moveStep(i,-1)}
                     style={{background:C.s2,border:`1px solid ${C.border2}`,borderRadius:6,
                       color:C.muted,fontSize:13,padding:"4px 7px",flexShrink:0}}>↑</button>
