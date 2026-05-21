@@ -110,6 +110,7 @@ const C = {
 };
 
 const STORAGE_KEY = "cursor-calc:v2";
+const USER_DEFAULT_STORAGE_KEY = "cursor-calc:user-default:v1";
 const PRICING_UPDATED = "2026-05-21";
 let _id = 20;
 const uid = prefix => `${prefix}${_id++}`;
@@ -177,11 +178,15 @@ function sanitizeConfig(raw) {
     currency:RATES[raw.currency]?raw.currency:d.currency
   };
 }
+function readStoredConfig(key) {
+  const raw = localStorage.getItem(key);
+  return raw ? sanitizeConfig(JSON.parse(raw)) : null;
+}
 function loadConfig() {
   const qs = new URLSearchParams(location.search);
   try {
     if (qs.has("config")) return sanitizeConfig(decodeConfig(qs.get("config")));
-    return sanitizeConfig(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+    return readStoredConfig(USER_DEFAULT_STORAGE_KEY) || readStoredConfig(STORAGE_KEY) || defaultConfig();
   } catch(e) { return defaultConfig(); }
 }
 
@@ -263,6 +268,8 @@ function App() {
   const [draft,    setDraft]    = useState({name:"",inputP:1.00,cacheP:0.10,outputP:5.00,color:"#c084fc"});
   const [tab,      setTab]      = useState("steps");
   const [shareUrl, setShareUrl] = useState("");
+  const [previousSteps, setPreviousSteps] = useState(null);
+  const [saveNotice, setSaveNotice] = useState("");
   const importRef = useRef(null);
 
   const sesInK  = steps.reduce((s,x)=>s+x.inputK, 0);
@@ -310,6 +317,15 @@ function App() {
     [next[currentIndex],next[targetIndex]]=[next[targetIndex],next[currentIndex]];
     return next;
   });
+  const applyPreset = preset => {
+    setPreviousSteps(steps.map(s=>({...s})));
+    setSteps(preset.steps());
+  };
+  const restorePreviousSteps = () => {
+    if(!previousSteps) return;
+    setSteps(previousSteps.map(s=>({...s})));
+    setPreviousSteps(null);
+  };
   const updModel = (id,f,v) => setModels(ms=>ms.map(m=>m.id===id?{...m,[f]:v}:m));
   const delModel = id => {
     if(models.length<=1) return;
@@ -325,11 +341,28 @@ function App() {
     setDraft({name:"",inputP:1.00,cacheP:0.10,outputP:5.00,color:"#c084fc"});
     setAddOpen(false);
   };
-  const resetAll = () => {
-    if(!confirm("Alle Einstellungen zurücksetzen?")) return;
-    const d=defaultConfig();
+  const applyConfig = d => {
     setSteps(d.steps); setModels(d.models); setSessions(d.sessions); setCModelId(d.cModelId); setRModelId(d.rModelId);
     setRevInK(d.revInK); setRevCacheK(d.revCacheK); setRevOutK(d.revOutK); setReviewEvery(d.reviewEvery); setCurrency(d.currency);
+    setPreviousSteps(null);
+  };
+  const resetAll = () => {
+    if(!confirm("Alle Einstellungen und den gespeicherten Standard zurücksetzen?")) return;
+    localStorage.removeItem(USER_DEFAULT_STORAGE_KEY);
+    applyConfig(defaultConfig());
+    setSaveNotice("");
+  };
+  const saveAsDefault = () => {
+    localStorage.setItem(USER_DEFAULT_STORAGE_KEY, JSON.stringify(cfg));
+    setSaveNotice("Aktuelle Werte als Standard für neue Sessions gespeichert.");
+  };
+  const loadSavedDefault = () => {
+    try {
+      const d = readStoredConfig(USER_DEFAULT_STORAGE_KEY);
+      if(!d) { setSaveNotice("Noch kein eigener Standard gespeichert."); return; }
+      applyConfig(d);
+      setSaveNotice("Gespeicherter Standard geladen.");
+    } catch(e) { setSaveNotice("Gespeicherter Standard konnte nicht geladen werden."); }
   };
   const exportConfig = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(cfg,null,2)], {type:"application/json"}));
@@ -340,8 +373,7 @@ function App() {
     file.text().then(t => {
       try {
         const d=sanitizeConfig(JSON.parse(t));
-        setSteps(d.steps); setModels(d.models); setSessions(d.sessions); setCModelId(d.cModelId); setRModelId(d.rModelId);
-        setRevInK(d.revInK); setRevCacheK(d.revCacheK); setRevOutK(d.revOutK); setReviewEvery(d.reviewEvery); setCurrency(d.currency);
+        applyConfig(d);
       } catch(err) { alert("Import fehlgeschlagen: Ungültige JSON-Datei"); }
       e.target.value="";
     });
@@ -413,11 +445,18 @@ function App() {
             badge={`${fmtTok(sesInK)} in · ${fmtTok(sesCacheK)} cache · ${fmtTok(sesOutK)} out · ${money(sesCost)}/Session`}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:12}}>
               {PRESETS.map(p=>(
-                <button key={p.name} onClick={()=>setSteps(p.steps())}
+                <button key={p.name} onClick={()=>applyPreset(p)}
                   style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,
                     fontWeight:700,fontSize:12,padding:"10px"}}>Preset: {p.name}</button>
               ))}
+              <button onClick={restorePreviousSteps} disabled={!previousSteps}
+                style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,
+                  fontWeight:700,fontSize:12,padding:"10px"}}>Reset: vorherige Steps</button>
+              <button onClick={saveAsDefault}
+                style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,
+                  fontWeight:700,fontSize:12,padding:"10px"}}>Aktuelle Werte speichern</button>
             </div>
+            {saveNotice && <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginBottom:12}}>{saveNotice}</div>}
             {steps.map((step,i)=>(
               <div key={step.id} style={{background:C.s3,borderRadius:8,padding:12,
                 border:`1px solid ${C.border}`,marginBottom:10}}>
@@ -518,14 +557,20 @@ function App() {
             <div style={{marginTop:10,fontFamily:C.mono,fontSize:12,color:rModel.color}}>
               Review-Kosten: {reviewCount} × {money(oneRevCost)} = {money(revCost)}
             </div>
+            <div style={{marginTop:8,fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5}}>
+              Cache-Read Tokens werden vom Input abgezogen und nur zum Cache-Preis berechnet; sie werden nicht zusätzlich zum vollen Input-Preis gezählt.
+            </div>
           </Panel>
           <Panel title="Daten & Teilen">
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
+              <button onClick={saveAsDefault} style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,fontWeight:700,padding:"10px"}}>Als Standard speichern</button>
+              <button onClick={loadSavedDefault} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Standard laden</button>
               <button onClick={shareConfig} style={{background:`${C.teal}22`,border:`1px solid ${C.teal}`,borderRadius:7,color:C.teal,fontWeight:700,padding:"10px"}}>Share-Link</button>
               <button onClick={exportConfig} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Export JSON</button>
               <button onClick={()=>importRef.current.click()} style={{background:C.s3,border:`1px solid ${C.border2}`,borderRadius:7,color:C.text,fontWeight:700,padding:"10px"}}>Import JSON</button>
               <button onClick={resetAll} style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:7,color:C.red,fontWeight:700,padding:"10px"}}>Reset</button>
             </div>
+            {saveNotice && <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,marginTop:10}}>{saveNotice}</div>}
             <input ref={importRef} aria-label="Konfiguration importieren" type="file" accept="application/json" onChange={importConfig} style={{display:"none"}}/>
             {shareUrl && <input aria-label="Share-Link" readOnly value={shareUrl} onFocus={e=>e.target.select()}
               style={{marginTop:10,width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
