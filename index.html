@@ -604,14 +604,14 @@ function App() {
           </Panel>
           <Panel title="Monthly Budgets">
             <div style={{fontFamily:C.mono,fontSize:10,color:C.muted,lineHeight:1.5,marginBottom:12}}>
-              Edit the monthly budget used by plan coverage. Set a budget to 0 to mark it as unset.
+              Edit the monthly budget used by plan coverage in the selected currency. Set a budget to 0 to mark it as unset.
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
               {PLANS.map(plan=>(
                 <div key={plan.id}>
                   <Label>{plan.name} budget ({currency})</Label>
-                  <input aria-label={`${plan.name} monthly budget`} type="number" value={planBudgets[plan.id]} min={0} step={1}
-                    onChange={e=>updPlanBudget(plan.id,e.target.value)}
+                  <input aria-label={`${plan.name} monthly budget`} type="number" value={Number(((planBudgets[plan.id]||0)*RATES[currency]).toFixed(2))} min={0} step={1}
+                    onChange={e=>updPlanBudget(plan.id,(Number(e.target.value)||0)/RATES[currency])}
                     style={{width:"100%",background:C.s3,border:`1px solid ${C.border2}`,
                       borderRadius:4,color:C.blue,fontFamily:C.mono,fontSize:15,
                       padding:"9px 10px",textAlign:"right"}}/>
