@@ -236,14 +236,16 @@ function parseCursorPricing(html) {
       const cells = [...row.children].map(cell=>cell.textContent.replace(/\s+/g," ").trim()).filter(Boolean);
       if(cells.length < 3) return;
       const headerAt = words => headers.findIndex(h=>words.some(w=>h.includes(w)));
-      const nameIndex = Math.max(0, headerAt(["model","name"]));
+      const headerNameIndex = headerAt(["model","name"]);
+      const nameIndex = headerNameIndex >= 0 ? headerNameIndex : 0;
       const inputIndex = headerAt(["input"]);
       const cacheReadIndex = headerAt(["cache read","cached input","cache hit"]);
       const cacheWriteIndex = headerAt(["cache write","cache creation","cache storage"]);
       const outputIndex = headerAt(["output"]);
+      if(inputIndex < 0 || outputIndex < 0) return;
       const prices = cells.map(parsePrice);
-      const inputP = inputIndex >= 0 ? prices[inputIndex] : prices.find((p,i)=>i!==nameIndex&&p>0);
-      const outputP = outputIndex >= 0 ? prices[outputIndex] : [...prices].reverse().find(p=>p>0);
+      const inputP = prices[inputIndex];
+      const outputP = prices[outputIndex];
       if(!cells[nameIndex] || !inputP || !outputP) return;
       parsed.push({
         id:modelIdFromName(cells[nameIndex]),
@@ -263,7 +265,6 @@ function parseCursorPricing(html) {
 }
 function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
   if(!cursorModels.length) return currentModels;
-  const activeSet = new Set(activeModelIds);
   const currentByKey = new Map(currentModels.map(m=>[modelKey(m.name),m]));
   const cursorKeys = new Set(cursorModels.map(m=>modelKey(m.name)));
   const mergedCursor = cursorModels.map((m,i)=>{
@@ -272,8 +273,7 @@ function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
   });
   const custom = currentModels.filter(m=>!cursorKeys.has(modelKey(m.name)));
   const next = [...mergedCursor,...custom];
-  const nextIds = new Set(next.map(m=>m.id));
-  return next.map((m,i)=>({...m,color:m.color||COLOR_PALETTE[i%COLOR_PALETTE.length]})).filter(m=>nextIds.has(m.id) || activeSet.has(m.id));
+  return next.map((m,i)=>({...m,color:m.color||COLOR_PALETTE[i%COLOR_PALETTE.length]}));
 }
 
 function Panel({ title, badge, children }) {
@@ -417,7 +417,9 @@ function App() {
 
   useEffect(() => {
     let ignore = false;
-    fetch(CURSOR_PRICING_URL, {cache:"no-store"})
+    const cursorPricingUrl = new URL(CURSOR_PRICING_URL);
+    if(cursorPricingUrl.origin !== "https://cursor.com") return;
+    fetch(cursorPricingUrl.href, {cache:"no-store"})
       .then(r => r.ok ? r.text() : Promise.reject(new Error(`Failed to fetch pricing data from ${CURSOR_PRICING_URL}: HTTP ${r.status}`)))
       .then(html => {
         if(ignore) return;
@@ -425,7 +427,7 @@ function App() {
         if(!cursorModels.length) return;
         setModels(ms=>mergeCursorModels(ms, activeModelIds, cursorModels));
       })
-      .catch(() => {}); // Keep the app usable offline or when cursor.com blocks cross-origin docs access.
+      .catch(err => console.info("Cursor pricing refresh skipped:", err.message));
     return () => { ignore = true; };
   }, []);
 
