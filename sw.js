@@ -1,4 +1,5 @@
 const CACHE = 'cursor-calc-v2';
+// Increment CACHE whenever app shell files or cached CDN dependencies change.
 const ASSETS = [
   './',
   './index.html',
@@ -10,7 +11,9 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {})));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(err => {
+    console.warn('Failed to pre-cache app shell', err);
+  })));
   self.skipWaiting();
 });
 
