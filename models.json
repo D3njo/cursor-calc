@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-21T17:03:47.766Z",
+  "updatedAt": "2026-05-24T08:44:59.594Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
   "models": [
     {
@@ -213,6 +213,14 @@
       "cacheP": 0.2,
       "cacheWriteP": 0,
       "outputP": 12,
+      "notes": "-"
+    },
+    {
+      "name": "Gemini 3.5 Flash",
+      "inputP": 1.5,
+      "cacheP": 0.15,
+      "cacheWriteP": 0,
+      "outputP": 9,
       "notes": "-"
     },
     {
