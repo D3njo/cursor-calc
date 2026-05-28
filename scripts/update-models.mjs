@@ -24,6 +24,8 @@ const SOURCE_URLS = [
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUTPUT = join(ROOT, "models.json");
 const MIN_EXPECTED_MODELS = 30;
+const MIN_VALID_BODY_BYTES = 500;
+const STALE_DAYS = 4;
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/124.0.0.0 Safari/537.36 cursor-calc-update-bot/1.0 " +
@@ -397,16 +399,51 @@ function parseContent(text, url) {
 
 // ---------- Main ----------
 
-async function fetchUrl(url) {
+function isInvalidSourceBody(text) {
+  const t = String(text).trim();
+  if (t.length < MIN_VALID_BODY_BYTES) return true;
+  if (t.startsWith('{"error"')) return true;
+  if (/^Redirecting/i.test(t)) return true;
+  return false;
+}
+
+async function fetchUrl(url, attempt = 0) {
   const accept = url.endsWith(".md")
     ? "text/plain,text/markdown,*/*"
     : "text/html,application/xhtml+xml";
   const res = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, Accept: accept },
+    headers: {
+      "User-Agent": USER_AGENT,
+      Accept: accept,
+      "Cache-Control": "no-cache, no-store",
+      Pragma: "no-cache",
+    },
     redirect: "follow",
+    cache: "no-store",
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return await res.text();
+  if (!res.ok) {
+    if (attempt < 2) {
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      return fetchUrl(url, attempt + 1);
+    }
+    throw new Error(`HTTP ${res.status} fetching ${url}`);
+  }
+  const text = await res.text();
+  if (isInvalidSourceBody(text)) {
+    if (attempt < 2) {
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      return fetchUrl(url, attempt + 1);
+    }
+    throw new Error(`Invalid or cached-empty body from ${url} (${text.length}b)`);
+  }
+  return text;
+}
+
+function catalogIsStale(updatedAtIso) {
+  if (!updatedAtIso) return true;
+  const updatedAt = new Date(updatedAtIso);
+  if (Number.isNaN(updatedAt.getTime())) return true;
+  return Date.now() - updatedAt.getTime() > STALE_DAYS * 24 * 60 * 60 * 1000;
 }
 
 async function tryFetchAndParse() {
@@ -513,17 +550,30 @@ async function main() {
   const autoPool = parseAutoPoolFromMarkdown(text);
 
   const existing = readExisting();
+  const checkedAt = new Date().toISOString();
   const sameModels =
     existing &&
     modelsEqual(sortModels(existing.models || []), models) &&
     autoPoolEqual(existing.autoPool, autoPool);
   if (sameModels) {
-    console.log(`No changes (${models.length} models from ${url} via ${strategy}).`);
+    if (catalogIsStale(existing.updatedAt)) {
+      console.log(
+        `::warning::Catalog unchanged but updatedAt is stale (${existing.updatedAt}, ${STALE_DAYS}+ days). ` +
+          "Source may be serving cached content."
+      );
+      process.exit(1);
+    }
+    const payload = { ...existing, checkedAt };
+    writeFileSync(OUTPUT, JSON.stringify(payload, null, 2) + "\n", "utf8");
+    console.log(
+      `No changes (${models.length} models from ${url} via ${strategy}). checkedAt=${checkedAt}.`
+    );
     return;
   }
 
   const payload = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: checkedAt,
+    checkedAt,
     source: url,
     models,
   };

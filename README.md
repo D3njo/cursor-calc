@@ -43,9 +43,13 @@ The script reads Cursor’s official markdown docs at
 It commits any pricing changes automatically. To refresh on demand, run the
 workflow manually from the **Actions** tab, or run `node scripts/update-models.mjs` locally.
 
-The app ships **Gemini 3.5 Flash** as a built-in custom model (not in the Cursor docs
-table yet). Edit prices in [`index.html`](./index.html) (`STANDARD_CUSTOM_MODEL`) or
-via the Models tab; other custom models from old saves are removed on load.
+**Gemini 3.5 Flash** and all other Cursor models come from the catalog. You can still
+add your own custom models in the Models tab. Saves that still reference the old
+built-in `custom-gemini-3-5-flash` id are migrated to the catalog entry on load.
+
+The scraper uses cache-busting when fetching the docs `.md` endpoint and rejects
+error/empty HTTP-200 bodies. If pricing data is unchanged for more than four days,
+the scheduled workflow fails visibly so a stale CDN response does not go unnoticed.
 
 ## Tests
 

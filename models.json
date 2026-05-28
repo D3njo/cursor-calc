@@ -1,5 +1,6 @@
 {
-  "updatedAt": "2026-05-24T08:44:59.594Z",
+  "updatedAt": "2026-05-28T18:56:03.583Z",
+  "checkedAt": "2026-05-28T18:56:20.030Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
   "models": [
     {
@@ -105,8 +106,9 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
       "rules": {
+        "hidden": true,
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
       }
@@ -120,6 +122,19 @@
       "notes": "Hidden by default; Requires Max Mode on request-based plans; Limited research preview; Up to 1M tokens in Max Mode at the same per-token rates as shorter context",
       "rules": {
         "isFastModeVariant": true
+      }
+    },
+    {
+      "name": "Claude Opus 4.8",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 25,
+      "notes": "Requires Max Mode on request-based plans; Fast mode (\\`claude-opus-4-8-fast\\`) requires Max Mode; Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true,
+        "fastModeAvailable": true
       }
     },
     {
@@ -408,9 +423,22 @@
       "cacheP": 0.2,
       "cacheWriteP": 0,
       "outputP": 2.5,
-      "notes": "Requires Max Mode on request-based plans",
+      "notes": "Hidden by default; Requires Max Mode on request-based plans",
       "rules": {
+        "hidden": true,
         "requiresMaxMode": true
+      }
+    },
+    {
+      "name": "Grok Build 0.1",
+      "inputP": 1,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 2,
+      "notes": "The cost is 2x when the input exceeds 200k tokens; No user-configurable reasoning effort",
+      "rules": {
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200
       }
     },
     {

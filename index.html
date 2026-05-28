@@ -248,19 +248,8 @@ const {
 } = window.CursorCalcLib;
 
 const PLACEHOLDER_MODEL_ID = "cursor-catalog-pending";
-const STANDARD_CUSTOM_MODEL = {
-  id:"custom-gemini-3-5-flash",
-  name:"Gemini 3.5 Flash",
-  inputP:1.5,
-  cacheP:0.15,
-  cacheWriteP:0,
-  outputP:9,
-  color:"#22d3ee",
-  source:"custom",
-  notes:"Not in Cursor docs yet. Prices estimated from Google Gemini API pricing; verify against your usage dashboard.",
-  rules:{ notInCursorDocs:true },
-};
-const STANDARD_CUSTOM_MODEL_IDS = new Set([STANDARD_CUSTOM_MODEL.id]);
+/** Legacy built-in custom id — removed from catalog; remap steps/active ids to cursor catalog entry. */
+const LEGACY_STANDARD_CUSTOM_ID = "custom-gemini-3-5-flash";
 /** Stable id from modelIdFromName("Composer 2.5") — default for steps/review (~$0.82 / 5 sessions). */
 const DEFAULT_COMPOSER_MODEL_ID = "cursor-composer-2-5";
 const DEFAULT_COMPOSER_MODEL = {
@@ -282,16 +271,15 @@ const DEFAULT_STEPS = [
 const DEFAULT_MODELS = [
   { id:PLACEHOLDER_MODEL_ID, name:"Loading Cursor models...", inputP:0, cacheP:0, cacheWriteP:0, outputP:0, color:"#5a6a85", source:"placeholder" },
   {...DEFAULT_COMPOSER_MODEL},
-  {...STANDARD_CUSTOM_MODEL},
 ];
-const DEFAULT_ACTIVE_MODEL_IDS = [DEFAULT_COMPOSER_MODEL_ID, STANDARD_CUSTOM_MODEL.id];
+const DEFAULT_ACTIVE_MODEL_IDS = [DEFAULT_COMPOSER_MODEL_ID];
 /** Cursor catalog models selected on first load (by display name). */
 const DEFAULT_FAVORITE_MODEL_KEYS = new Set([
   "claude 4 7 opus",
   "claude 4 6 sonnet",
   "gpt 5 5",
   "composer 2 5",
-  "composer 2 5 flash",
+  "gemini 3 5 flash",
 ]);
 const isDefaultFavoriteModel = model =>
   isCursorModel(model) && DEFAULT_FAVORITE_MODEL_KEYS.has(modelKey(model.name));
@@ -410,21 +398,25 @@ function sanitizeConfig(raw) {
     rules:m.rules && typeof m.rules==="object"?{...m.rules}:{}
   })) : d.models;
   if(!models.length) models = cloneModels(DEFAULT_MODELS);
-  models = applyStandardCustomModels(models);
-  const rawActive = Array.isArray(raw.activeModelIds) ? raw.activeModelIds.map(String) : d.activeModelIds;
+  models = dropLegacyStandardCustom(models);
+  const catalogGemini = models.find(m=>isCursorModel(m) && modelKey(m.name)==="gemini 3 5 flash");
+  const remapLegacyId = id => (id===LEGACY_STANDARD_CUSTOM_ID && catalogGemini ? catalogGemini.id : id);
+  const rawActive = Array.isArray(raw.activeModelIds) ? raw.activeModelIds.map(String).map(remapLegacyId) : d.activeModelIds;
   const activeModelIds = rawActive.filter(id=>models.some(m=>m.id===id));
   models.filter(isCustomModel).forEach(m=>{ if(!activeModelIds.includes(m.id)) activeModelIds.push(m.id); });
   if(!activeModelIds.length) activeModelIds.push(models[0].id);
   const availableModelIds = new Set(activeModelIds);
-  const cModelId = availableModelIds.has(raw.cModelId)?raw.cModelId:activeModelIds[0];
+  const resolvedCModelId = remapLegacyId(String(raw.cModelId||""));
+  const cModelId = availableModelIds.has(resolvedCModelId)?resolvedCModelId:activeModelIds[0];
   const steps = Array.isArray(raw.steps) && raw.steps.length
     ? raw.steps.map(s => {
         const norm = normalizeStep(s, cModelId);
+        const stepModelId = remapLegacyId(String(s.modelId||""));
         return {
           ...norm,
           id: s.id || norm.id || uid("s"),
           name: String(s.name || norm.name),
-          modelId: availableModelIds.has(s.modelId) ? s.modelId : cModelId,
+          modelId: availableModelIds.has(stepModelId) ? stepModelId : cModelId,
         };
       })
     : d.steps;
@@ -447,7 +439,7 @@ function sanitizeConfig(raw) {
     steps, models, activeModelIds,
     sessions:Math.min(50,Math.max(1,parseInt(raw.sessions)||d.sessions)),
     cModelId,
-    rModelId:availableModelIds.has(raw.rModelId)?raw.rModelId:activeModelIds[0],
+    rModelId:availableModelIds.has(remapLegacyId(String(raw.rModelId||"")))?remapLegacyId(String(raw.rModelId||"")):activeModelIds[0],
     revInK: rev.revInK,
     revCacheReadK: rev.revCacheReadK,
     revCacheWriteK: rev.revCacheWriteK,
@@ -472,18 +464,13 @@ function loadConfig() {
     return readStoredConfig(USER_DEFAULT_STORAGE_KEY) || readStoredConfig(STORAGE_KEY) || defaultConfig();
   } catch(e) { return defaultConfig(); }
 }
-/** Keep only the built-in standard custom model(s); drop other customs from saved config. */
-function applyStandardCustomModels(models) {
-  const nonCustom = models.filter(m=>!isCustomModel(m));
-  const saved = models.find(m=>STANDARD_CUSTOM_MODEL_IDS.has(m.id));
-  const standard = saved
-    ? {...STANDARD_CUSTOM_MODEL,...saved,id:STANDARD_CUSTOM_MODEL.id,source:"custom",
-        rules:{...STANDARD_CUSTOM_MODEL.rules,...(saved.rules||{})}}
-    : {...STANDARD_CUSTOM_MODEL};
-  return [...nonCustom, standard];
+function isLegacyStandardCustom(model) {
+  if(model?.id===LEGACY_STANDARD_CUSTOM_ID) return true;
+  return isCustomModel(model) && modelKey(model.name)==="gemini 3 5 flash";
 }
-function isStandardCustomModel(model) {
-  return isCustomModel(model) && STANDARD_CUSTOM_MODEL_IDS.has(model?.id);
+/** Drop legacy built-in Gemini custom so catalog entry is the single source. */
+function dropLegacyStandardCustom(models) {
+  return models.filter(m=>!isLegacyStandardCustom(m));
 }
 function parseCatalogModels(payload) {
   const list = Array.isArray(payload?.models) ? payload.models : Array.isArray(payload) ? payload : [];
@@ -522,7 +509,8 @@ function mergeCursorModels(currentModels, activeModelIds, cursorModels) {
       rules:m.rules||existing?.rules||{},
     };
   }) : currentModels.filter(m=>isCursorModel(m));
-  const next = applyStandardCustomModels(mergedCursor);
+  const userCustoms = currentModels.filter(m=>isCustomModel(m) && !isLegacyStandardCustom(m));
+  const next = dropLegacyStandardCustom([...mergedCursor, ...userCustoms]);
   return next.map((m,i)=>({...m,color:m.color||COLOR_PALETTE[i%COLOR_PALETTE.length]}));
 }
 
@@ -728,25 +716,29 @@ function App() {
           const existingCursorModels = ms.filter(isCursorModel);
           const hadSmallCursorFallback = existingCursorModels.length > 0 && existingCursorModels.length < MIN_EXPECTED_CURSOR_MODELS;
           const next = mergeCursorModels(ms, activeModelIds, cursorModels);
+          const catalogGemini = next.find(m=>isCursorModel(m) && modelKey(m.name)==="gemini 3 5 flash");
+          const remapLegacyId = id => (id===LEGACY_STANDARD_CUSTOM_ID && catalogGemini ? catalogGemini.id : id);
           const defaultFavoriteIds = pickDefaultFavoriteIds(next);
           const primaryModel = pickDefaultPrimaryModel(next);
           const primaryModelId = primaryModel?.id;
           setActiveModelIds(ids=>{
             if(hadPlaceholder || hadSmallCursorFallback) return defaultFavoriteIds;
-            const existing = new Set(ids.filter(id=>next.some(m=>m.id===id && !isPlaceholderModel(m))));
+            const existing = new Set(ids.map(remapLegacyId).filter(id=>next.some(m=>m.id===id && !isPlaceholderModel(m))));
             next.filter(isCustomModel).forEach(m=>existing.add(m.id));
             if(!existing.size) return defaultFavoriteIds;
             return [...existing];
           });
           const pickDefaultModelId = id=>{
-            if(next.some(m=>m.id===id && !isPlaceholderModel(m))) return id;
-            return primaryModelId || id;
+            const remapped = remapLegacyId(id);
+            if(next.some(m=>m.id===remapped && !isPlaceholderModel(m))) return remapped;
+            return primaryModelId || remapped;
           };
           setCModelId(id=>(hadPlaceholder||hadSmallCursorFallback) ? (primaryModelId||id) : pickDefaultModelId(id));
           setRModelId(id=>(hadPlaceholder||hadSmallCursorFallback) ? (primaryModelId||id) : pickDefaultModelId(id));
           setSteps(ss=>ss.map(step=>{
             if(hadPlaceholder||hadSmallCursorFallback) return {...step,modelId:primaryModelId||step.modelId};
-            if(next.some(m=>m.id===step.modelId && !isPlaceholderModel(m))) return step;
+            const stepModelId = remapLegacyId(step.modelId);
+            if(next.some(m=>m.id===stepModelId && !isPlaceholderModel(m))) return {...step,modelId:stepModelId};
             return {...step,modelId:primaryModelId||step.modelId};
           }));
           return next;
@@ -756,7 +748,7 @@ function App() {
         if(updatedAt && !isNaN(updatedAt)) setCatalogUpdatedAt(updatedAt.toISOString().slice(0,10));
         const stamp = updatedAt && !isNaN(updatedAt) ? ` (catalog ${updatedAt.toISOString().slice(0,10)})` : "";
         setPricingStatus(
-          `Loaded ${cursorModels.length} API models + standard custom (Gemini 3.5 Flash)${stamp}. Pool: ${poolLabel}.`
+          `Loaded ${cursorModels.length} API models${stamp}. Pool: ${poolLabel}.`
         );
       })
       .catch(err => {
@@ -809,7 +801,6 @@ function App() {
   };
   const updModel = (id,f,v) => setModels(ms=>ms.map(m=>m.id===id?{...m,[f]:v}:m));
   const delModel = id => {
-    if(STANDARD_CUSTOM_MODEL_IDS.has(id)) return;
     if(models.length<=1) return;
     const next = models.filter(m=>m.id!==id);
     setModels(next);
@@ -1295,21 +1286,17 @@ function App() {
                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,flex:"1 1 180px",minWidth:0}}>
                     <input aria-label={`Color for ${m.name}`} type="color" value={m.color} onChange={e=>updModel(m.id,"color",e.target.value)}
-                      disabled={isStandardCustomModel(m)}
                       style={{width:28,height:28,border:"none",borderRadius:4,
                         cursor:"pointer",padding:0,background:"none",flexShrink:0}}/>
-                    <input aria-label="Model name" value={m.name} readOnly={isStandardCustomModel(m)}
+                    <input aria-label="Model name" value={m.name}
                       onChange={e=>updModel(m.id,"name",e.target.value)}
                       style={{flex:1,background:"transparent",border:"none",color:m.color,
                         fontFamily:C.sans,fontWeight:700,fontSize:13,outline:"none",minWidth:0}}/>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flex:"1 1 auto",justifyContent:"flex-end"}}>
                     <span style={{fontFamily:C.mono,fontSize:10,color:C.teal}}>Always active</span>
-                    {isStandardCustomModel(m) && (
-                      <span style={{fontFamily:C.mono,fontSize:9,color:C.teal}}>built-in (not in Cursor docs yet)</span>
-                    )}
                     <ModelRuleBadges rules={m.rules}/>
-                    <button aria-label={`Delete ${m.name}`} disabled={models.length<=1||isStandardCustomModel(m)} onClick={()=>delModel(m.id)}
+                    <button aria-label={`Delete ${m.name}`} disabled={models.length<=1} onClick={()=>delModel(m.id)}
                       style={{background:`${C.red}22`,border:`1px solid ${C.red}44`,borderRadius:6,
                         color:C.red,fontSize:14,padding:"4px 8px",flexShrink:0}}>✕</button>
                   </div>
