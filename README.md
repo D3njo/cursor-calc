@@ -48,8 +48,10 @@ add your own custom models in the Models tab. Saves that still reference the old
 built-in `custom-gemini-3-5-flash` id are migrated to the catalog entry on load.
 
 The scraper uses cache-busting when fetching the docs `.md` endpoint and rejects
-error/empty HTTP-200 bodies. If pricing data is unchanged for more than four days,
-the scheduled workflow fails visibly so a stale CDN response does not go unnoticed.
+error/empty HTTP-200 bodies. When pricing is unchanged it still refreshes
+`checkedAt` (and `updatedAt` if the catalog had not been verified in a while).
+If the raw docs body has not changed for more than four days, the workflow logs a
+GitHub warning so a stale CDN response is easier to spot without failing the run.
 
 ## Tests
 

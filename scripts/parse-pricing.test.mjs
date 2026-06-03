@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   parseModelsFromMarkdown,
   parseAutoPoolFromMarkdown,
+  catalogIsStale,
 } from "./update-models.mjs";
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "pricing-snippet.md");
@@ -29,6 +30,15 @@ test("parseModelsFromMarkdown extracts API model rows", () => {
   assert.equal(sonnet1m.rules?.longContextInputMultiplier, 2);
   const composer = models.find((m) => m.name === "Composer 2.5");
   assert.equal(composer.cacheWriteP, 0);
+});
+
+test("catalogIsStale is false for a recent timestamp", () => {
+  assert.equal(catalogIsStale(new Date().toISOString()), false);
+});
+
+test("catalogIsStale is true for timestamps older than the stale window", () => {
+  const old = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+  assert.equal(catalogIsStale(old), true);
 });
 
 test("parseAutoPoolFromMarkdown extracts Auto + Composer rates", () => {

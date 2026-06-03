@@ -9,6 +9,7 @@
 // Exits non-zero (without writing) if no models can be parsed, so a scheduled
 // workflow does not commit an empty catalog.
 
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
@@ -407,11 +408,22 @@ function isInvalidSourceBody(text) {
   return false;
 }
 
+function fetchUrlWithCacheBust(url) {
+  // The .md endpoint 404s when a query string is appended; rely on cache headers instead.
+  if (url.endsWith(".md")) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}_=${Date.now()}`;
+}
+
+function hashSourceBody(text) {
+  return createHash("sha256").update(text).digest("hex").slice(0, 16);
+}
+
 async function fetchUrl(url, attempt = 0) {
   const accept = url.endsWith(".md")
     ? "text/plain,text/markdown,*/*"
     : "text/html,application/xhtml+xml";
-  const res = await fetch(url, {
+  const res = await fetch(fetchUrlWithCacheBust(url), {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: accept,
@@ -439,7 +451,7 @@ async function fetchUrl(url, attempt = 0) {
   return text;
 }
 
-function catalogIsStale(updatedAtIso) {
+export function catalogIsStale(updatedAtIso) {
   if (!updatedAtIso) return true;
   const updatedAt = new Date(updatedAtIso);
   if (Number.isNaN(updatedAt.getTime())) return true;
@@ -555,15 +567,29 @@ async function main() {
     existing &&
     modelsEqual(sortModels(existing.models || []), models) &&
     autoPoolEqual(existing.autoPool, autoPool);
+  const digest = hashSourceBody(text);
+  const digestChanged = existing?.sourceDigest !== digest;
+  const digestSince = digestChanged
+    ? checkedAt
+    : existing?.sourceDigestSince || existing?.updatedAt || checkedAt;
+
   if (sameModels) {
-    if (catalogIsStale(existing.updatedAt)) {
+    if (!digestChanged && catalogIsStale(digestSince)) {
       console.log(
-        `::warning::Catalog unchanged but updatedAt is stale (${existing.updatedAt}, ${STALE_DAYS}+ days). ` +
-          "Source may be serving cached content."
+        `::warning::Catalog and source body unchanged since ${digestSince} (${STALE_DAYS}+ days). ` +
+          "Docs may be stale on the CDN; compare manually with cursor.com/docs/models-and-pricing."
       );
-      process.exit(1);
     }
-    const payload = { ...existing, checkedAt };
+    const payload = {
+      ...existing,
+      checkedAt,
+      source: url,
+      sourceDigest: digest,
+      sourceDigestSince: digestSince,
+    };
+    if (catalogIsStale(existing.updatedAt)) {
+      payload.updatedAt = checkedAt;
+    }
     writeFileSync(OUTPUT, JSON.stringify(payload, null, 2) + "\n", "utf8");
     console.log(
       `No changes (${models.length} models from ${url} via ${strategy}). checkedAt=${checkedAt}.`
@@ -575,6 +601,8 @@ async function main() {
     updatedAt: checkedAt,
     checkedAt,
     source: url,
+    sourceDigest: digest,
+    sourceDigestSince: checkedAt,
     models,
   };
   if (autoPool) payload.autoPool = autoPool;
