@@ -1,6 +1,6 @@
 {
   "updatedAt": "2026-06-03T12:49:59.497Z",
-  "checkedAt": "2026-06-03T12:52:08.094Z",
+  "checkedAt": "2026-06-04T10:12:40.512Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
   "models": [
     {
@@ -460,6 +460,6 @@
     "cacheWriteP": 1.25,
     "outputP": 6
   },
-  "sourceDigest": "197357bfb695a2f5",
-  "sourceDigestSince": "2026-06-03T12:49:59.497Z"
+  "sourceDigest": "4d34253dbce134c0",
+  "sourceDigestSince": "2026-06-04T10:12:40.512Z"
 }
