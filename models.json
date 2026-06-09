@@ -1,7 +1,9 @@
 {
-  "updatedAt": "2026-06-08T11:21:00.859Z",
-  "checkedAt": "2026-06-09T10:03:16.803Z",
+  "updatedAt": "2026-06-09T19:00:44.753Z",
+  "checkedAt": "2026-06-09T19:00:44.753Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
+  "sourceDigest": "f25a259bdb1322fe",
+  "sourceDigestSince": "2026-06-09T19:00:44.753Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -111,6 +113,17 @@
         "hidden": true,
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude Fable 5",
+      "inputP": 10,
+      "cacheP": 1,
+      "cacheWriteP": 12.5,
+      "outputP": 50,
+      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 4.8; Requires Max Mode on request-based plans",
+      "rules": {
+        "requiresMaxMode": true
       }
     },
     {
@@ -459,7 +472,5 @@
     "cacheP": 0.25,
     "cacheWriteP": 1.25,
     "outputP": 6
-  },
-  "sourceDigest": "4d34253dbce134c0",
-  "sourceDigestSince": "2026-06-04T10:12:40.512Z"
+  }
 }
