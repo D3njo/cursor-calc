@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-06-29T11:23:47.408Z",
-  "checkedAt": "2026-06-29T11:23:47.408Z",
+  "updatedAt": "2026-06-30T10:01:26.596Z",
+  "checkedAt": "2026-06-30T10:01:26.596Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "b2ddbac5a06661f8",
-  "sourceDigestSince": "2026-06-25T09:45:16.022Z",
+  "sourceDigest": "a02304857ddca877",
+  "sourceDigestSince": "2026-06-30T10:01:26.596Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -77,17 +77,6 @@
         "hidden": true,
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
-      }
-    },
-    {
-      "name": "Claude 4.6 Opus (Fast mode)",
-      "inputP": 30,
-      "cacheP": 3,
-      "cacheWriteP": 37.5,
-      "outputP": 150,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Limited research preview; Up to 1M tokens in Max Mode at the same per-token rates as shorter context",
-      "rules": {
-        "isFastModeVariant": true
       }
     },
     {
