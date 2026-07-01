@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-06-30T10:01:26.596Z",
-  "checkedAt": "2026-06-30T10:01:26.596Z",
+  "updatedAt": "2026-07-01T10:15:00.635Z",
+  "checkedAt": "2026-07-01T10:15:00.635Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "a02304857ddca877",
-  "sourceDigestSince": "2026-06-30T10:01:26.596Z",
+  "sourceDigest": "887b258b00faa883",
+  "sourceDigestSince": "2026-07-01T10:15:00.635Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -85,8 +85,9 @@
       "cacheP": 0.3,
       "cacheWriteP": 3.75,
       "outputP": 15,
-      "notes": "Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
       "rules": {
+        "hidden": true,
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
       }
@@ -137,6 +138,18 @@
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true,
         "fastModeAvailable": true
+      }
+    },
+    {
+      "name": "Claude Sonnet 5",
+      "inputP": 3,
+      "cacheP": 0.3,
+      "cacheWriteP": 3.75,
+      "outputP": 15,
+      "notes": "Launch promotion: $2/M input and $10/M output through August 31, 2026; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
+      "rules": {
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
       }
     },
     {
