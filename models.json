@@ -1,9 +1,9 @@
 {
   "updatedAt": "2026-07-05T09:22:41.011Z",
-  "checkedAt": "2026-07-07T10:01:17.150Z",
+  "checkedAt": "2026-07-08T08:44:04.307Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "cbee964cd0bf00b6",
-  "sourceDigestSince": "2026-07-05T09:22:41.011Z",
+  "sourceDigest": "7a7ca876381a1781",
+  "sourceDigestSince": "2026-07-08T08:44:04.307Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
