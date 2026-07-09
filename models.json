@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-07-05T09:22:41.011Z",
-  "checkedAt": "2026-07-08T08:44:04.307Z",
+  "updatedAt": "2026-07-09T09:57:12.053Z",
+  "checkedAt": "2026-07-09T09:57:12.053Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "7a7ca876381a1781",
-  "sourceDigestSince": "2026-07-08T08:44:04.307Z",
+  "sourceDigest": "b94d47b7c51b7e9a",
+  "sourceDigestSince": "2026-07-09T09:57:12.053Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -158,28 +158,6 @@
       "cacheP": 0.125,
       "cacheWriteP": 0,
       "outputP": 10,
-      "notes": "Hidden by default",
-      "rules": {
-        "hidden": true
-      }
-    },
-    {
-      "name": "Composer 1.5",
-      "inputP": 3.5,
-      "cacheP": 0.35,
-      "cacheWriteP": 0,
-      "outputP": 17.5,
-      "notes": "Hidden by default",
-      "rules": {
-        "hidden": true
-      }
-    },
-    {
-      "name": "Composer 2",
-      "inputP": 0.5,
-      "cacheP": 0.2,
-      "cacheWriteP": 0,
-      "outputP": 2.5,
       "notes": "Hidden by default",
       "rules": {
         "hidden": true
@@ -431,41 +409,12 @@
       }
     },
     {
-      "name": "Grok 4.20",
+      "name": "Grok 4.5",
       "inputP": 2,
-      "cacheP": 0.2,
+      "cacheP": 0.5,
       "cacheWriteP": 0,
       "outputP": 6,
-      "notes": "Hidden by default; The cost is 2x when the input exceeds 200k tokens",
-      "rules": {
-        "hidden": true,
-        "longContextInputMultiplier": 2,
-        "longContextThresholdK": 200
-      }
-    },
-    {
-      "name": "Grok 4.3",
-      "inputP": 1.25,
-      "cacheP": 0.2,
-      "cacheWriteP": 0,
-      "outputP": 2.5,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans",
-      "rules": {
-        "hidden": true,
-        "requiresMaxMode": true
-      }
-    },
-    {
-      "name": "Grok Build 0.1",
-      "inputP": 1,
-      "cacheP": 0.2,
-      "cacheWriteP": 0,
-      "outputP": 2,
-      "notes": "The cost is 2x when the input exceeds 200k tokens; No user-configurable reasoning effort",
-      "rules": {
-        "longContextInputMultiplier": 2,
-        "longContextThresholdK": 200
-      }
+      "notes": "Jointly trained by Cursor and SpaceXAI; Not yet available in the European Union"
     },
     {
       "name": "Kimi K2.7 Code",
