@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-07-09T09:57:12.053Z",
-  "checkedAt": "2026-07-09T09:57:12.053Z",
+  "updatedAt": "2026-07-10T09:53:11.352Z",
+  "checkedAt": "2026-07-10T09:53:11.352Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "b94d47b7c51b7e9a",
-  "sourceDigestSince": "2026-07-09T09:57:12.053Z",
+  "sourceDigest": "608f89839de51595",
+  "sourceDigestSince": "2026-07-10T09:53:11.352Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -347,8 +347,9 @@
       "cacheP": 0.175,
       "cacheWriteP": 0,
       "outputP": 14,
-      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.3-codex-high",
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.3-codex-high",
       "rules": {
+        "hidden": true,
         "requiresMaxMode": true
       }
     },
@@ -399,11 +400,51 @@
       "cacheP": 0.5,
       "cacheWriteP": 0,
       "outputP": 30,
-      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; More token-efficient than GPT-5.4 on comparable tasks; Improved persistence on long-running tasks; Fast mode is available at higher rates; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; More token-efficient than GPT-5.4 on comparable tasks; Improved persistence on long-running tasks; Fast mode is available at higher rates; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200,
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "GPT-5.6 Luna",
+      "inputP": 1,
+      "cacheP": 0.1,
+      "cacheWriteP": 1.25,
+      "outputP": 6,
+      "notes": "Smallest GPT-5.6 variant, optimized for cost and speed; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "rules": {
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "GPT-5.6 Sol",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 30,
+      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context (Max Mode) supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
         "requiresMaxMode": true,
         "longContextInputMultiplier": 2,
         "longContextThresholdK": 200,
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "GPT-5.6 Terra",
+      "inputP": 2.5,
+      "cacheP": 0.25,
+      "cacheWriteP": 3.125,
+      "outputP": 15,
+      "notes": "Mid-tier GPT-5.6 variant between Sol and Luna; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "rules": {
         "fastModeAvailable": true,
         "fastModeMultiplier": 2
       }
