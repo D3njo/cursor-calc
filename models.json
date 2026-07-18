@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-07-15T08:35:44.188Z",
-  "checkedAt": "2026-07-17T08:28:40.344Z",
+  "updatedAt": "2026-07-18T08:09:03.069Z",
+  "checkedAt": "2026-07-18T08:09:03.069Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "155f6287bef2ab51",
-  "sourceDigestSince": "2026-07-17T08:28:40.344Z",
+  "sourceDigest": "621f4f4e3666f143",
+  "sourceDigestSince": "2026-07-18T08:09:03.069Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -47,7 +47,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true
@@ -59,7 +59,7 @@
       "cacheP": 0.3,
       "cacheWriteP": 3.75,
       "outputP": 15,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -72,7 +72,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -85,7 +85,7 @@
       "cacheP": 0.3,
       "cacheWriteP": 3.75,
       "outputP": 15,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -98,7 +98,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -111,7 +111,7 @@
       "cacheP": 1,
       "cacheWriteP": 12.5,
       "outputP": 50,
-      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 4.8; Requires Max Mode on request-based plans",
+      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 4.8; Requires Max Mode on legacy request-based plans",
       "rules": {
         "requiresMaxMode": true
       }
@@ -122,7 +122,7 @@
       "cacheP": 3,
       "cacheWriteP": 37.5,
       "outputP": 150,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Limited research preview; Up to 1M tokens in Max Mode at the same per-token rates as shorter context",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Limited research preview; Up to 1M tokens with extended context at the same per-token rates as shorter context",
       "rules": {
         "isFastModeVariant": true
       }
@@ -133,7 +133,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Requires Max Mode on request-based plans; Fast mode (\\`claude-opus-4-8-fast\\`) requires Max Mode; Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge)",
+      "notes": "Requires Max Mode on legacy request-based plans; Fast mode (\\`claude-opus-4-8-fast\\`) requires Max Mode on legacy request-based plans; Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true,
@@ -146,7 +146,7 @@
       "cacheP": 0.3,
       "cacheWriteP": 3.75,
       "outputP": 15,
-      "notes": "Launch promotion: $2/M input and $10/M output through August 31, 2026; Requires Max Mode on request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
+      "notes": "Launch promotion: $2/M input and $10/M output through August 31, 2026; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
@@ -347,7 +347,7 @@
       "cacheP": 0.175,
       "cacheWriteP": 0,
       "outputP": 14,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.3-codex-high",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Available reasoning effort variant is gpt-5.3-codex-high",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true
@@ -359,7 +359,7 @@
       "cacheP": 0.25,
       "cacheWriteP": 0,
       "outputP": 15,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; 90% discount on cached input tokens; Fast mode is 15% faster with 2x pricing; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; 90% discount on cached input tokens; Fast mode is 15% faster with 2x pricing; Long context supports up to 1M tokens with 2x input pricing",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -400,7 +400,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 0,
       "outputP": 30,
-      "notes": "Hidden by default; Requires Max Mode on request-based plans; Agentic and reasoning capabilities; More token-efficient than GPT-5.4 on comparable tasks; Improved persistence on long-running tasks; Fast mode is available at higher rates; Long context (Max Mode) supports up to 1M tokens with 2x input pricing",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; More token-efficient than GPT-5.4 on comparable tasks; Improved persistence on long-running tasks; Fast mode is available at higher rates; Long context supports up to 1M tokens with 2x input pricing",
       "rules": {
         "hidden": true,
         "requiresMaxMode": true,
@@ -428,7 +428,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 30,
-      "notes": "Requires Max Mode on request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context (Max Mode) supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "notes": "Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
         "requiresMaxMode": true,
         "longContextInputMultiplier": 2,
@@ -455,7 +455,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 0,
       "outputP": 6,
-      "notes": "Jointly trained by Cursor and SpaceXAI; Not yet available in the European Union"
+      "notes": "Jointly trained by Cursor and SpaceXAI"
     },
     {
       "name": "Kimi K2.7 Code",
