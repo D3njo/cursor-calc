@@ -1,10 +1,21 @@
 {
-  "updatedAt": "2026-07-18T08:09:03.069Z",
-  "checkedAt": "2026-07-21T08:45:32.355Z",
+  "updatedAt": "2026-07-22T08:44:53.069Z",
+  "checkedAt": "2026-07-22T08:44:53.069Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "621f4f4e3666f143",
-  "sourceDigestSince": "2026-07-18T08:09:03.069Z",
+  "sourceDigest": "1c025efa3e079e50",
+  "sourceDigestSince": "2026-07-22T08:44:53.069Z",
   "models": [
+    {
+      "name": "Auto Cost",
+      "inputP": 1.25,
+      "cacheP": 0.25,
+      "cacheWriteP": 1.25,
+      "outputP": 6,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
     {
       "name": "Claude 4 Sonnet",
       "inputP": 3,
@@ -229,6 +240,17 @@
       "cacheP": 0.15,
       "cacheWriteP": 0,
       "outputP": 9,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3.6 Flash",
+      "inputP": 1.5,
+      "cacheP": 0.15,
+      "cacheWriteP": 0,
+      "outputP": 7.5,
       "notes": "-"
     },
     {
@@ -468,12 +490,5 @@
         "hidden": true
       }
     }
-  ],
-  "autoPool": {
-    "name": "Auto + Composer",
-    "inputP": 1.25,
-    "cacheP": 0.25,
-    "cacheWriteP": 1.25,
-    "outputP": 6
-  }
+  ]
 }
