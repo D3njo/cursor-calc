@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-07-22T08:44:53.069Z",
-  "checkedAt": "2026-07-24T08:42:42.128Z",
+  "updatedAt": "2026-07-25T08:24:01.720Z",
+  "checkedAt": "2026-07-25T08:24:01.720Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "3e72f9e501a51388",
-  "sourceDigestSince": "2026-07-23T08:44:19.478Z",
+  "sourceDigest": "9dc1a7bbbba250b5",
+  "sourceDigestSince": "2026-07-25T08:24:01.720Z",
   "models": [
     {
       "name": "Auto Cost",
@@ -122,7 +122,7 @@
       "cacheP": 1,
       "cacheWriteP": 12.5,
       "outputP": 50,
-      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 4.8; Requires Max Mode on legacy request-based plans",
+      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 5; Requires Max Mode on legacy request-based plans",
       "rules": {
         "requiresMaxMode": true
       }
@@ -144,7 +144,21 @@
       "cacheP": 0.5,
       "cacheWriteP": 6.25,
       "outputP": 25,
-      "notes": "Requires Max Mode on legacy request-based plans; Fast mode (\\`claude-opus-4-8-fast\\`) requires Max Mode on legacy request-based plans; Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Fast mode (\\`claude-opus-4-8-fast\\`) requires Max Mode on legacy request-based plans; Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true,
+        "fastModeAvailable": true
+      }
+    },
+    {
+      "name": "Claude Opus 5",
+      "inputP": 5,
+      "cacheP": 0.5,
+      "cacheWriteP": 6.25,
+      "outputP": 25,
+      "notes": "Requires Max Mode on legacy request-based plans; Fast mode (\\`claude-opus-5-fast\\`) requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true,
