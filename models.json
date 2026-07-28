@@ -1,21 +1,10 @@
 {
-  "updatedAt": "2026-07-25T08:24:01.720Z",
-  "checkedAt": "2026-07-27T10:09:18.854Z",
+  "updatedAt": "2026-07-28T09:04:50.276Z",
+  "checkedAt": "2026-07-28T09:04:50.276Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "9dc1a7bbbba250b5",
-  "sourceDigestSince": "2026-07-25T08:24:01.720Z",
+  "sourceDigest": "a1d55bad622889eb",
+  "sourceDigestSince": "2026-07-28T09:04:50.276Z",
   "models": [
-    {
-      "name": "Auto Cost",
-      "inputP": 1.25,
-      "cacheP": 0.25,
-      "cacheWriteP": 1.25,
-      "outputP": 6,
-      "notes": "Hidden by default",
-      "rules": {
-        "hidden": true
-      }
-    },
     {
       "name": "Claude 4 Sonnet",
       "inputP": 3,
@@ -176,25 +165,6 @@
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
       }
-    },
-    {
-      "name": "Composer 1",
-      "inputP": 1.25,
-      "cacheP": 0.125,
-      "cacheWriteP": 0,
-      "outputP": 10,
-      "notes": "Hidden by default",
-      "rules": {
-        "hidden": true
-      }
-    },
-    {
-      "name": "Composer 2.5",
-      "inputP": 0.5,
-      "cacheP": 0.2,
-      "cacheWriteP": 0,
-      "outputP": 2.5,
-      "notes": "-"
     },
     {
       "name": "Gemini 2.5 Flash",
@@ -486,14 +456,6 @@
       }
     },
     {
-      "name": "Grok 4.5",
-      "inputP": 2,
-      "cacheP": 0.5,
-      "cacheWriteP": 0,
-      "outputP": 6,
-      "notes": "Jointly trained by Cursor and SpaceXAI"
-    },
-    {
       "name": "Kimi K2.7 Code",
       "inputP": 0.95,
       "cacheP": 0.19,
@@ -502,6 +464,19 @@
       "notes": "Hidden by default",
       "rules": {
         "hidden": true
+      }
+    },
+    {
+      "name": "Kimi K3",
+      "inputP": 3,
+      "cacheP": 0.3,
+      "cacheWriteP": 0,
+      "outputP": 15,
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); No separate cache-write fee",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
       }
     }
   ]
