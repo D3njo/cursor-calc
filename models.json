@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-07-28T09:04:50.276Z",
-  "checkedAt": "2026-07-28T09:04:50.276Z",
+  "updatedAt": "2026-07-31T09:16:48.728Z",
+  "checkedAt": "2026-07-31T09:16:48.728Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "a1d55bad622889eb",
-  "sourceDigestSince": "2026-07-28T09:04:50.276Z",
+  "sourceDigest": "dc6047420cf40f5d",
+  "sourceDigestSince": "2026-07-31T09:16:48.728Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -418,10 +418,10 @@
     },
     {
       "name": "GPT-5.6 Luna",
-      "inputP": 1,
-      "cacheP": 0.1,
-      "cacheWriteP": 1.25,
-      "outputP": 6,
+      "inputP": 0.2,
+      "cacheP": 0.02,
+      "cacheWriteP": 0.25,
+      "outputP": 1.2,
       "notes": "Smallest GPT-5.6 variant, optimized for cost and speed; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
         "fastModeAvailable": true,
@@ -445,10 +445,10 @@
     },
     {
       "name": "GPT-5.6 Terra",
-      "inputP": 2.5,
-      "cacheP": 0.25,
-      "cacheWriteP": 3.125,
-      "outputP": 15,
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 2.5,
+      "outputP": 12,
       "notes": "Mid-tier GPT-5.6 variant between Sol and Luna; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
         "fastModeAvailable": true,
