@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-08-10T08:04:16.418Z",
-  "checkedAt": "2026-08-12T07:52:53.645Z",
+  "updatedAt": "2026-08-13T07:53:23.749Z",
+  "checkedAt": "2026-08-13T07:53:23.749Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "dc6047420cf40f5d",
-  "sourceDigestSince": "2026-07-31T09:16:48.728Z",
+  "sourceDigest": "52a874b16c89c923",
+  "sourceDigestSince": "2026-08-13T07:53:23.749Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -165,6 +165,22 @@
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
       }
+    },
+    {
+      "name": "Composer 2.5",
+      "inputP": 0.5,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "-"
+    },
+    {
+      "name": "Composer 2.5 (Fast)",
+      "inputP": 3,
+      "cacheP": 0.5,
+      "cacheWriteP": 0,
+      "outputP": 15,
+      "notes": "-"
     },
     {
       "name": "Gemini 2.5 Flash",
@@ -454,6 +470,38 @@
         "fastModeAvailable": true,
         "fastModeMultiplier": 2
       }
+    },
+    {
+      "name": "Grok 4.5",
+      "inputP": 2,
+      "cacheP": 0.5,
+      "cacheWriteP": 0,
+      "outputP": 6,
+      "notes": "Jointly trained by Cursor and SpaceXAI"
+    },
+    {
+      "name": "Grok 4.5 (Fast)",
+      "inputP": 4,
+      "cacheP": 1,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Jointly trained by Cursor and SpaceXAI"
+    },
+    {
+      "name": "Grok 4.6",
+      "inputP": 2,
+      "cacheP": 0.5,
+      "cacheWriteP": 0,
+      "outputP": 6,
+      "notes": "Jointly trained by Cursor and SpaceXAI; 50% launch discount for one week starting August 12, 2026"
+    },
+    {
+      "name": "Grok 4.6 (Fast)",
+      "inputP": 4,
+      "cacheP": 1,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Jointly trained by Cursor and SpaceXAI; 50% launch discount for one week starting August 12, 2026"
     },
     {
       "name": "Kimi K2.7 Code",
