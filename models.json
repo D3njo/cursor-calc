@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-08-13T07:53:23.749Z",
-  "checkedAt": "2026-08-13T07:53:23.749Z",
+  "updatedAt": "2026-08-14T07:50:40.186Z",
+  "checkedAt": "2026-08-14T07:50:40.186Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "52a874b16c89c923",
-  "sourceDigestSince": "2026-08-13T07:53:23.749Z",
+  "sourceDigest": "97524ba2f2826d38",
+  "sourceDigestSince": "2026-08-14T07:50:40.186Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -156,11 +156,11 @@
     },
     {
       "name": "Claude Sonnet 5",
-      "inputP": 3,
-      "cacheP": 0.3,
-      "cacheWriteP": 3.75,
-      "outputP": 15,
-      "notes": "Launch promotion: $2/M input and $10/M output through August 31, 2026; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 2.5,
+      "outputP": 10,
+      "notes": "Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
@@ -251,6 +251,17 @@
       "cacheP": 0.15,
       "cacheWriteP": 0,
       "outputP": 7.5,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3.7 Flash",
+      "inputP": 0.75,
+      "cacheP": 0.075,
+      "cacheWriteP": 0,
+      "outputP": 3.5,
       "notes": "-"
     },
     {
