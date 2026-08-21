@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-08-20T07:06:31.610Z",
-  "checkedAt": "2026-08-20T07:06:31.610Z",
+  "updatedAt": "2026-08-21T07:08:01.232Z",
+  "checkedAt": "2026-08-21T07:08:01.232Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "97524ba2f2826d38",
-  "sourceDigestSince": "2026-08-14T07:50:40.186Z",
+  "sourceDigest": "fb0d4180c6b750cd",
+  "sourceDigestSince": "2026-08-21T07:08:01.232Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -495,7 +495,7 @@
       "inputP": 4,
       "cacheP": 1,
       "cacheWriteP": 0,
-      "outputP": 12,
+      "outputP": 18,
       "notes": "Jointly trained by Cursor and SpaceXAI"
     },
     {
@@ -504,7 +504,7 @@
       "cacheP": 0.5,
       "cacheWriteP": 0,
       "outputP": 6,
-      "notes": "Jointly trained by Cursor and SpaceXAI; 50% launch discount for one week starting August 12, 2026"
+      "notes": "Jointly trained by Cursor and SpaceXAI"
     },
     {
       "name": "Grok 4.6 (Fast)",
@@ -512,7 +512,7 @@
       "cacheP": 1,
       "cacheWriteP": 0,
       "outputP": 12,
-      "notes": "Jointly trained by Cursor and SpaceXAI; 50% launch discount for one week starting August 12, 2026"
+      "notes": "Jointly trained by Cursor and SpaceXAI"
     },
     {
       "name": "Kimi K2.7 Code",
