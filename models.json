@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-08-21T07:08:01.232Z",
-  "checkedAt": "2026-08-21T07:08:01.232Z",
+  "updatedAt": "2026-08-22T06:59:26.705Z",
+  "checkedAt": "2026-08-22T06:59:26.705Z",
   "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "fb0d4180c6b750cd",
-  "sourceDigestSince": "2026-08-21T07:08:01.232Z",
+  "sourceDigest": "67f4b9d0c0aa1a5b",
+  "sourceDigestSince": "2026-08-22T06:59:26.705Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -457,11 +457,11 @@
     },
     {
       "name": "GPT-5.6 Sol",
-      "inputP": 5,
-      "cacheP": 0.5,
-      "cacheWriteP": 6.25,
-      "outputP": 30,
-      "notes": "Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "inputP": 4,
+      "cacheP": 0.4,
+      "cacheWriteP": 5,
+      "outputP": 20,
+      "notes": "Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate; Promotional pricing through November 21, 2026",
       "rules": {
         "requiresMaxMode": true,
         "longContextInputMultiplier": 2,
