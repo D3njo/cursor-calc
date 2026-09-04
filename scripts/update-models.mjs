@@ -2,9 +2,9 @@
 // Sync Cursor API model pricing into models.json.
 // No npm dependencies: runs on plain Node 20+ (built-in fetch).
 //
-// Primary source: https://cursor.com/docs/models-and-pricing.md
-// Cursor docs are client-rendered HTML (no <table> in initial response), but the
-// official .md endpoint (listed in llms.txt) ships pipe tables with all prices.
+// Primary source: https://cursor.com/docs/models-and-pricing
+// Cursor docs content-negotiate markdown vs HTML. Prefer markdown; the HTML page
+// is client-rendered and only ships a subset of pricing tables.
 //
 // Exits non-zero (without writing) if no models can be parsed, so a scheduled
 // workflow does not commit an empty catalog.
@@ -15,12 +15,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { parseNotesRules } from "./pricing-rules.mjs";
 
-const PRIMARY_SOURCE_URL = "https://cursor.com/docs/models-and-pricing.md";
+const PRIMARY_SOURCE_URL = "https://cursor.com/docs/models-and-pricing";
 const SOURCE_URLS = [
   PRIMARY_SOURCE_URL,
-  "https://cursor.com/docs/models-and-pricing",
-  "https://www.cursor.com/docs/models-and-pricing.md",
+  "https://cursor.com/docs/models",
   "https://www.cursor.com/docs/models-and-pricing",
+  // llms.txt still lists the .md suffix; it 404s as of 2026-08-25 but keep as fallback.
+  "https://cursor.com/docs/models-and-pricing.md",
 ];
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUTPUT = join(ROOT, "models.json");
@@ -355,7 +356,10 @@ function parseModelsFromJsonBlobs(html) {
 // ---------- Content parsing ----------
 
 function isMarkdownSource(url, text) {
-  return url.endsWith(".md") || text.includes("### Model pricing");
+  if (url.endsWith(".md")) return true;
+  if (text.includes("### Model pricing")) return true;
+  if (text.startsWith("# ") && text.includes("| Model")) return true;
+  return false;
 }
 
 function parseContent(text, url) {
@@ -420,10 +424,11 @@ function hashSourceBody(text) {
 }
 
 async function fetchUrl(url, attempt = 0) {
-  const accept = url.endsWith(".md")
-    ? "text/plain,text/markdown,*/*"
-    : "text/html,application/xhtml+xml";
-  const res = await fetch(fetchUrlWithCacheBust(url), {
+  // Cursor docs content-negotiate: the same path serves markdown or HTML.
+  // Prefer markdown — the HTML page is client-rendered and has incomplete tables.
+  // Do not append query strings: the docs CDN 404s some cache-bust tokens.
+  const accept = "text/markdown,text/plain,text/html,application/xhtml+xml,*/*";
+  const res = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: accept,
@@ -559,9 +564,9 @@ async function main() {
 
   const { url, text, models: parsed, strategy } = result;
   const models = sortModels(parsed);
-  const autoPool = parseAutoPoolFromMarkdown(text);
-
   const existing = readExisting();
+  const parsedAutoPool = parseAutoPoolFromMarkdown(text);
+  const autoPool = parsedAutoPool || existing?.autoPool || null;
   const checkedAt = new Date().toISOString();
   const sameModels =
     existing &&

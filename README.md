@@ -38,8 +38,10 @@ and is loaded same-origin at startup (no CORS, works offline once cached).
 A scheduled GitHub Action (`.github/workflows/update-models.yml`) refreshes the
 catalog once a day via [`scripts/update-models.mjs`](./scripts/update-models.mjs).
 The script reads Cursor’s official markdown docs at
-[cursor.com/docs/models-and-pricing.md](https://cursor.com/docs/models-and-pricing.md)
-(the HTML page is client-rendered and has no tables in the initial response).
+[cursor.com/docs/models-and-pricing](https://cursor.com/docs/models-and-pricing)
+(the same path serves markdown when requested with `Accept: text/markdown`; the
+old `.md` suffix 404s). The HTML page is client-rendered and only has a subset
+of tables in the initial response, so the scraper prefers markdown.
 It commits any pricing changes automatically. To refresh on demand, run the
 workflow manually from the **Actions** tab, or run `node scripts/update-models.mjs` locally.
 
@@ -47,11 +49,11 @@ workflow manually from the **Actions** tab, or run `node scripts/update-models.m
 add your own custom models in the Models tab. Saves that still reference the old
 built-in `custom-gemini-3-5-flash` id are migrated to the catalog entry on load.
 
-The scraper uses cache-busting when fetching the docs `.md` endpoint and rejects
-error/empty HTTP-200 bodies. When pricing is unchanged it still refreshes
-`checkedAt` (and `updatedAt` if the catalog had not been verified in a while).
-If the raw docs body has not changed for more than four days, the workflow logs a
-GitHub warning so a stale CDN response is easier to spot without failing the run.
+The scraper prefers markdown via content negotiation and retries invalid/empty
+bodies. When pricing is unchanged it still refreshes `checkedAt` (and `updatedAt`
+if the catalog had not been verified in a while). If the raw docs body has not
+changed for more than four days, the workflow logs a GitHub warning so a stale
+CDN response is easier to spot without failing the run.
 
 ## Tests
 

@@ -1,9 +1,7 @@
 {
-  "updatedAt": "2026-08-22T06:59:26.705Z",
-  "checkedAt": "2026-08-24T07:28:48.477Z",
-  "source": "https://cursor.com/docs/models-and-pricing.md",
-  "sourceDigest": "67f4b9d0c0aa1a5b",
-  "sourceDigestSince": "2026-08-22T06:59:26.705Z",
+  "updatedAt": "2026-09-04T08:17:17.688Z",
+  "checkedAt": "2026-09-04T08:22:25.808Z",
+  "source": "https://cursor.com/docs/models-and-pricing",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -111,7 +109,19 @@
       "cacheP": 1,
       "cacheWriteP": 12.5,
       "outputP": 50,
-      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 5; Requires Max Mode on legacy request-based plans",
+      "notes": "Hidden by default; Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; About 2x the cost of Claude Opus 5; Requires Max Mode on legacy request-based plans",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true
+      }
+    },
+    {
+      "name": "Claude Fable 5.1",
+      "inputP": 10,
+      "cacheP": 0.25,
+      "cacheWriteP": 12.5,
+      "outputP": 50,
+      "notes": "Requires data retention approval for Enterprise customers, Teams and individual customers with Privacy Mode enabled; Anthropic stores agent input and output data for harm-prevention processes; this data is not used to train or improve Anthropic models or products; Requests that trip a security guardrail are automatically routed to Claude Opus; Prompt-cache reads are $0.25/M, 75% below the standard cache-read rate; About 2x the cost of Claude Opus 5 on input and output; Requires Max Mode on legacy request-based plans",
       "rules": {
         "requiresMaxMode": true
       }
@@ -258,6 +268,17 @@
     },
     {
       "name": "Gemini 3.7 Flash",
+      "inputP": 0.75,
+      "cacheP": 0.075,
+      "cacheWriteP": 0,
+      "outputP": 3.5,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Gemini 3.8 Flash",
       "inputP": 0.75,
       "cacheP": 0.075,
       "cacheWriteP": 0,
@@ -538,5 +559,14 @@
         "maxModeWaivesLongSurcharge": true
       }
     }
-  ]
+  ],
+  "autoPool": {
+    "name": "Auto + Composer",
+    "inputP": 1.25,
+    "cacheP": 0.25,
+    "cacheWriteP": 1.25,
+    "outputP": 6
+  },
+  "sourceDigest": "77aea691e35330e8",
+  "sourceDigestSince": "2026-09-04T08:22:25.808Z"
 }
