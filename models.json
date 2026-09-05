@@ -1,7 +1,9 @@
 {
-  "updatedAt": "2026-09-04T08:17:17.688Z",
-  "checkedAt": "2026-09-04T11:19:09.517Z",
+  "updatedAt": "2026-09-05T10:36:34.082Z",
+  "checkedAt": "2026-09-05T10:36:34.082Z",
   "source": "https://cursor.com/docs/models-and-pricing",
+  "sourceDigest": "da1cb64fd81713dd",
+  "sourceDigestSince": "2026-09-05T10:36:34.082Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -470,8 +472,11 @@
       "cacheP": 0.02,
       "cacheWriteP": 0.25,
       "outputP": 1.2,
-      "notes": "Smallest GPT-5.6 variant, optimized for cost and speed; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "notes": "Requires Max Mode on legacy request-based plans; Smallest GPT-5.6 variant, optimized for cost and speed; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Fast mode is available for long context (>272k) at 2x Fast input pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
+        "requiresMaxMode": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200,
         "fastModeAvailable": true,
         "fastModeMultiplier": 2
       }
@@ -482,7 +487,7 @@
       "cacheP": 0.4,
       "cacheWriteP": 5,
       "outputP": 20,
-      "notes": "Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Cache writes are billed at 1.25x the uncached input rate; Promotional pricing through November 21, 2026",
+      "notes": "Requires Max Mode on legacy request-based plans; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Fast mode is available for long context (>272k) at 2x Fast input pricing; Cache writes are billed at 1.25x the uncached input rate; Promotional pricing through November 21, 2026",
       "rules": {
         "requiresMaxMode": true,
         "longContextInputMultiplier": 2,
@@ -497,8 +502,11 @@
       "cacheP": 0.2,
       "cacheWriteP": 2.5,
       "outputP": 12,
-      "notes": "Mid-tier GPT-5.6 variant between Sol and Luna; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Cache writes are billed at 1.25x the uncached input rate",
+      "notes": "Requires Max Mode on legacy request-based plans; Mid-tier GPT-5.6 variant between Sol and Luna; Agentic and reasoning capabilities; Fast mode is available at 2x pricing; Long context supports up to 1M tokens with 2x input pricing; Fast mode is available for long context (>272k) at 2x Fast input pricing; Cache writes are billed at 1.25x the uncached input rate",
       "rules": {
+        "requiresMaxMode": true,
+        "longContextInputMultiplier": 2,
+        "longContextThresholdK": 200,
         "fastModeAvailable": true,
         "fastModeMultiplier": 2
       }
@@ -566,7 +574,5 @@
     "cacheP": 0.25,
     "cacheWriteP": 1.25,
     "outputP": 6
-  },
-  "sourceDigest": "77aea691e35330e8",
-  "sourceDigestSince": "2026-09-04T08:22:25.808Z"
+  }
 }
