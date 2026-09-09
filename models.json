@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-09-05T10:36:34.082Z",
-  "checkedAt": "2026-09-08T11:20:53.101Z",
+  "updatedAt": "2026-09-09T11:24:32.526Z",
+  "checkedAt": "2026-09-09T11:24:32.526Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "d3f6f58c9898255e",
-  "sourceDigestSince": "2026-09-08T11:20:53.101Z",
+  "sourceDigest": "421e544605f736d8",
+  "sourceDigestSince": "2026-09-09T11:24:32.526Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -563,6 +563,18 @@
       "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); No separate cache-write fee",
       "rules": {
         "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Muse Spark 1.3",
+      "inputP": 1.25,
+      "cacheP": 0.15,
+      "cacheWriteP": 0,
+      "outputP": 4.25,
+      "notes": "Requires Max Mode on legacy request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Cached input is billed at $0.15 per million tokens with no separate cache-write charge",
+      "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
       }
