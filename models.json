@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-09-18T11:16:35.007Z",
-  "checkedAt": "2026-09-21T12:50:12.009Z",
+  "updatedAt": "2026-09-22T11:40:10.177Z",
+  "checkedAt": "2026-09-22T11:40:10.177Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "421e544605f736d8",
-  "sourceDigestSince": "2026-09-09T11:24:32.526Z",
+  "sourceDigest": "6fa46b538e954798",
+  "sourceDigestSince": "2026-09-22T11:40:10.177Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -542,6 +542,54 @@
       "cacheWriteP": 0,
       "outputP": 12,
       "notes": "Jointly trained by Cursor and SpaceXAI"
+    },
+    {
+      "name": "Grok 4.7",
+      "inputP": 2,
+      "cacheP": 0.5,
+      "cacheWriteP": 0,
+      "outputP": 6,
+      "notes": "Jointly trained by Cursor and SpaceXAI; Long context (>256k input tokens) is billed at 2x standard rates, up to 500k; Fast mode is available at 2x pricing; Fast mode for long context (>256k) is billed at 3x standard rates",
+      "rules": {
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "Grok 4.7 (Fast)",
+      "inputP": 4,
+      "cacheP": 1,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Jointly trained by Cursor and SpaceXAI; Long context (>256k input tokens) is billed at 2x standard rates, up to 500k; Fast mode is available at 2x pricing; Fast mode for long context (>256k) is billed at 3x standard rates",
+      "rules": {
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "Grok 4.7 500k",
+      "inputP": 4,
+      "cacheP": 1,
+      "cacheWriteP": 0,
+      "outputP": 12,
+      "notes": "Jointly trained by Cursor and SpaceXAI; Long context (>256k input tokens) is billed at 2x standard rates, up to 500k; Fast mode is available at 2x pricing; Fast mode for long context (>256k) is billed at 3x standard rates",
+      "rules": {
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
+    },
+    {
+      "name": "Grok 4.7 500k (Fast)",
+      "inputP": 6,
+      "cacheP": 1.5,
+      "cacheWriteP": 0,
+      "outputP": 18,
+      "notes": "Jointly trained by Cursor and SpaceXAI; Long context (>256k input tokens) is billed at 2x standard rates, up to 500k; Fast mode is available at 2x pricing; Fast mode for long context (>256k) is billed at 3x standard rates",
+      "rules": {
+        "fastModeAvailable": true,
+        "fastModeMultiplier": 2
+      }
     },
     {
       "name": "Kimi K2.7 Code",
