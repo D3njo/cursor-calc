@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-09-27T12:04:18.269Z",
-  "checkedAt": "2026-09-28T13:57:19.602Z",
+  "updatedAt": "2026-09-29T12:54:53.268Z",
+  "checkedAt": "2026-09-29T12:54:53.268Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "4a64394017ef71ee",
-  "sourceDigestSince": "2026-09-23T11:38:38.879Z",
+  "sourceDigest": "acf02bfcab161847",
+  "sourceDigestSince": "2026-09-29T12:54:53.268Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -186,7 +186,20 @@
       "cacheP": 0.2,
       "cacheWriteP": 2.5,
       "outputP": 10,
-      "notes": "Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge); Uses an updated tokenizer, so the same input can map to more tokens",
+      "rules": {
+        "hidden": true,
+        "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Claude Sonnet 5.5",
+      "inputP": 2,
+      "cacheP": 0.2,
+      "cacheWriteP": 2.5,
+      "outputP": 10,
+      "notes": "Requires Max Mode on legacy request-based plans; Same per-token rates as Claude Sonnet 5; US-only endpoints are priced 10% higher ($2.20/M input, $11/M output); Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
@@ -307,6 +320,28 @@
       "cacheP": 0.26,
       "cacheWriteP": 0,
       "outputP": 4.4,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GLM 5.3",
+      "inputP": 1.4,
+      "cacheP": 0.26,
+      "cacheWriteP": 0,
+      "outputP": 4.4,
+      "notes": "Hidden by default; Same per-token rates as GLM 5.2",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "GLM 5.3 Flash",
+      "inputP": 0.15,
+      "cacheP": 0.029,
+      "cacheWriteP": 0,
+      "outputP": 0.5,
       "notes": "Hidden by default",
       "rules": {
         "hidden": true
