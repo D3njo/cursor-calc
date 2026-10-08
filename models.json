@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-04T12:23:22.138Z",
-  "checkedAt": "2026-10-07T13:25:57.087Z",
+  "updatedAt": "2026-10-08T13:31:26.808Z",
+  "checkedAt": "2026-10-08T13:31:26.808Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "acf02bfcab161847",
-  "sourceDigestSince": "2026-09-29T12:54:53.268Z",
+  "sourceDigest": "bb6ceef2705dfbe0",
+  "sourceDigestSince": "2026-10-08T13:31:26.808Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -129,6 +129,17 @@
       }
     },
     {
+      "name": "Claude Haiku 5.5",
+      "inputP": 0.1,
+      "cacheP": 0.01,
+      "cacheWriteP": 0.125,
+      "outputP": 0.5,
+      "notes": "Requires Max Mode on legacy request-based plans; Requests above 100k input tokens bill at 5x the standard rates ($0.50/M input, $0.625/M cache write, $0.05/M cache read, $2.50/M output); 90% cheaper than Claude 4.5 Haiku on input and output for requests up to 100k input tokens",
+      "rules": {
+        "requiresMaxMode": true
+      }
+    },
+    {
       "name": "Claude Opus 4.7 (fast mode)",
       "inputP": 30,
       "cacheP": 3,
@@ -196,10 +207,10 @@
     {
       "name": "Claude Sonnet 5.5",
       "inputP": 2,
-      "cacheP": 0.2,
+      "cacheP": 0.1,
       "cacheWriteP": 2.5,
       "outputP": 10,
-      "notes": "Requires Max Mode on legacy request-based plans; Same per-token rates as Claude Sonnet 5; US-only endpoints are priced 10% higher ($2.20/M input, $11/M output); Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
+      "notes": "Requires Max Mode on legacy request-based plans; Same input and output rates as Claude Sonnet 5, with cache reads at $0.10/M instead of $0.20/M; US-only endpoints are priced 10% higher ($2.20/M input, $11/M output); Up to 1M tokens with extended context at the same per-token rates (no long-context surcharge)",
       "rules": {
         "requiresMaxMode": true,
         "maxModeWaivesLongSurcharge": true
