@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-12T15:27:45.129Z",
-  "checkedAt": "2026-10-13T14:13:28.680Z",
+  "updatedAt": "2026-10-14T11:54:18.315Z",
+  "checkedAt": "2026-10-14T11:54:18.315Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "bb6ceef2705dfbe0",
-  "sourceDigestSince": "2026-10-08T13:31:26.808Z",
+  "sourceDigest": "41b1b5cc33faf64b",
+  "sourceDigestSince": "2026-10-14T11:54:18.315Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -296,6 +296,17 @@
       }
     },
     {
+      "name": "Gemini 3.5 Flash Lite",
+      "inputP": 0.3,
+      "cacheP": 0.03,
+      "cacheWriteP": 0,
+      "outputP": 2.5,
+      "notes": "Hidden by default; Used only for the Auto-review classifier. It is not selectable as a chat or agent model",
+      "rules": {
+        "hidden": true
+      }
+    },
+    {
       "name": "Gemini 3.6 Flash",
       "inputP": 1.5,
       "cacheP": 0.15,
@@ -311,7 +322,7 @@
       "inputP": 0.75,
       "cacheP": 0.075,
       "cacheWriteP": 0,
-      "outputP": 3.5,
+      "outputP": 3.75,
       "notes": "Hidden by default",
       "rules": {
         "hidden": true
@@ -322,7 +333,15 @@
       "inputP": 0.75,
       "cacheP": 0.075,
       "cacheWriteP": 0,
-      "outputP": 3.5,
+      "outputP": 3.75,
+      "notes": "-"
+    },
+    {
+      "name": "Gemini 4 Argon",
+      "inputP": 2,
+      "cacheP": 0.1,
+      "cacheWriteP": 0,
+      "outputP": 10,
       "notes": "-"
     },
     {
