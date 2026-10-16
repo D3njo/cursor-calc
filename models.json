@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-14T11:54:18.315Z",
-  "checkedAt": "2026-10-15T11:30:56.167Z",
+  "updatedAt": "2026-10-16T11:25:56.157Z",
+  "checkedAt": "2026-10-16T11:25:56.157Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "33843943fee37252",
-  "sourceDigestSince": "2026-10-15T11:30:56.167Z",
+  "sourceDigest": "2bb4baf3095d8fd7",
+  "sourceDigestSince": "2026-10-16T11:25:56.157Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -700,9 +700,21 @@
       "cacheP": 0.15,
       "cacheWriteP": 0,
       "outputP": 4.25,
-      "notes": "Requires Max Mode on legacy request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Cached input is billed at $0.15 per million tokens with no separate cache-write charge",
+      "notes": "Hidden by default; Requires Max Mode on legacy request-based plans; Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Cached input is billed at $0.15 per million tokens with no separate cache-write charge",
       "rules": {
+        "hidden": true,
         "requiresMaxMode": true,
+        "maxModeWaivesLongSurcharge": true
+      }
+    },
+    {
+      "name": "Muse Wonder",
+      "inputP": 4,
+      "cacheP": 0.2,
+      "cacheWriteP": 0,
+      "outputP": 20,
+      "notes": "Up to 1M tokens in Max Mode at the same per-token rates (no long-context surcharge); Cached input is billed at $0.20 per million tokens with no separate cache-write charge",
+      "rules": {
         "maxModeWaivesLongSurcharge": true
       }
     }
