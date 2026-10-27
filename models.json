@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-25T11:31:50.786Z",
-  "checkedAt": "2026-10-26T13:05:24.894Z",
+  "updatedAt": "2026-10-27T12:13:47.557Z",
+  "checkedAt": "2026-10-27T12:13:47.557Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "9fe053861f5d6748",
-  "sourceDigestSince": "2026-10-21T11:50:53.540Z",
+  "sourceDigest": "e3f6aee695446630",
+  "sourceDigestSince": "2026-10-27T12:13:47.557Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -231,6 +231,17 @@
       "cacheWriteP": 0,
       "outputP": 15,
       "notes": "-"
+    },
+    {
+      "name": "DeepSeek V4.1 Flash 1017",
+      "inputP": 0.3,
+      "cacheP": 0.006,
+      "cacheWriteP": 0,
+      "outputP": 1.2,
+      "notes": "Hidden by default",
+      "rules": {
+        "hidden": true
+      }
     },
     {
       "name": "Gemini 2.5 Flash",
