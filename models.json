@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-11-10T14:54:13.433Z",
-  "checkedAt": "2026-11-10T14:54:13.433Z",
+  "updatedAt": "2026-11-11T14:24:17.325Z",
+  "checkedAt": "2026-11-11T14:24:17.325Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "5b41e6198b0e607c",
-  "sourceDigestSince": "2026-11-10T14:54:13.433Z",
+  "sourceDigest": "90f92363965d74fb",
+  "sourceDigestSince": "2026-11-11T14:24:17.325Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -366,6 +366,14 @@
       "cacheWriteP": 0,
       "outputP": 10,
       "notes": "-"
+    },
+    {
+      "name": "Gemini 4 Carbon",
+      "inputP": 2,
+      "cacheP": 0.1,
+      "cacheWriteP": 0,
+      "outputP": 10,
+      "notes": "Introductory pricing through November 30, 2026. From December 1, 2026: $4 input, $0.20 cache read, $20 output per 1M tokens"
     },
     {
       "name": "GLM 5.2",
