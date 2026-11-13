@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-11-11T14:24:17.325Z",
-  "checkedAt": "2026-11-12T15:16:24.684Z",
+  "updatedAt": "2026-11-13T14:36:23.167Z",
+  "checkedAt": "2026-11-13T14:36:23.167Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "90f92363965d74fb",
-  "sourceDigestSince": "2026-11-11T14:24:17.325Z",
+  "sourceDigest": "d7d073f49a3bff9f",
+  "sourceDigestSince": "2026-11-13T14:36:23.167Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -374,6 +374,14 @@
       "cacheWriteP": 0,
       "outputP": 10,
       "notes": "Introductory pricing through November 30, 2026. From December 1, 2026: $4 input, $0.20 cache read, $20 output per 1M tokens"
+    },
+    {
+      "name": "Gemini 4 Hydrogen",
+      "inputP": 1.5,
+      "cacheP": 0.075,
+      "cacheWriteP": 0,
+      "outputP": 7.5,
+      "notes": "-"
     },
     {
       "name": "GLM 5.2",
