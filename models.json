@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-11-17T16:01:09.301Z",
-  "checkedAt": "2026-11-18T15:40:47.749Z",
+  "updatedAt": "2026-11-19T15:45:41.241Z",
+  "checkedAt": "2026-11-19T15:45:41.241Z",
   "source": "https://cursor.com/docs/models-and-pricing",
-  "sourceDigest": "d7d073f49a3bff9f",
-  "sourceDigestSince": "2026-11-13T14:36:23.167Z",
+  "sourceDigest": "653a9ff7d68408e1",
+  "sourceDigestSince": "2026-11-19T15:45:41.241Z",
   "models": [
     {
       "name": "Claude 4 Sonnet",
@@ -381,6 +381,14 @@
       "cacheP": 0.075,
       "cacheWriteP": 0,
       "outputP": 7.5,
+      "notes": "-"
+    },
+    {
+      "name": "Gemini 4 Neon",
+      "inputP": 3,
+      "cacheP": 0.15,
+      "cacheWriteP": 0,
+      "outputP": 15,
       "notes": "-"
     },
     {
